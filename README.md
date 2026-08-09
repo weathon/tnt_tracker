@@ -45,6 +45,8 @@ npm start
 
 Application records are stored in `data/tracker.json`. This file is excluded from Git so personal profile, food, and activity data are not committed.
 
+Food entries store the selected meal time. Medications are tracked separately by name, dose or notes, and time; medication records are never sent through food analysis.
+
 The official 2024 Adult Compendium MET reference is stored in `data/met-compendium.json`. Its source is the [Compendium of Physical Activities](https://pacompendium.com/adult-compendium/). The checked-in import script documents how the local table was produced.
 
 ## Energy calculation
