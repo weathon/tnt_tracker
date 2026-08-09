@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {foodContent} from "../lib/ai.ts";
+test("food payload places prompt before all base64 images",()=>{const c=foodContent("rice",[{mime:"image/png",base64:"aaa"},{mime:"image/jpeg",base64:"bbb"}]);assert.equal(c[0].type,"text");assert.match((c[0] as {text:string}).text,/rice/);assert.deepEqual(c.slice(1).map((x:any)=>x.image_url.url),["data:image/png;base64,aaa","data:image/jpeg;base64,bbb"])});

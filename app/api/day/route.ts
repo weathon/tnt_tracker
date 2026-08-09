@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server"; import { blankDay, updateState } from "@/lib/store"; import { trackerSchema } from "@/lib/validation";
+export async function PUT(r:Request){try{const v=trackerSchema.parse(await r.json());return NextResponse.json(await updateState(s=>{const d=s.days[v.date]??blankDay();d.trackerBurn=v.trackerBurn;d.correctionFactor=v.correctionFactor;d.rulerPosition=v.rulerPosition;s.days[v.date]=d}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Invalid request"},{status:400})}}
