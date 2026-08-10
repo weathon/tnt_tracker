@@ -4,3 +4,4 @@ node_modules
 .env
 data/tracker.json
 *.tsbuildinfo
+nohup.out

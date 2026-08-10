@@ -9,6 +9,7 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 npm install
+chmod +x bin/tnt-tracker.mjs
 
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -18,3 +19,4 @@ else
 fi
 
 echo "Setup complete. Run ./scripts/run.sh to start the app."
+echo "Use npm run cli -- help to see CLI commands."

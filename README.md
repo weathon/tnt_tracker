@@ -34,6 +34,37 @@ Start the development server:
 
 Then visit [http://localhost:3000](http://localhost:3000).
 
+## Command-line control
+
+The CLI controls a running server through the same validated routes as the webpage. It prints JSON, making it suitable for terminal use, automation, and coding agents. Start the application with `./scripts/run.sh` before using the CLI.
+
+```sh
+npm run cli -- help
+npm run cli -- state
+npm run cli -- day show --date 2026-08-09
+npm run cli -- medication add --name "Vitamin D" --dose "1000 IU" --time 09:00
+npm run cli -- activity add --text "45 minutes brisk walking"
+npm run cli -- food add --time 12:30 --text "chicken sandwich and coffee"
+npm run cli -- food add --time 18:00 --image ./dinner.jpg
+```
+
+You can also invoke the executable directly:
+
+```sh
+./bin/tnt-tracker.mjs day show
+./bin/tnt-tracker.mjs tracker set --burn 2800 --factor 0.9 --position 0.5
+```
+
+Set `TNT_TRACKER_URL` when the server is not running at the default `http://localhost:3000`:
+
+```sh
+TNT_TRACKER_URL=http://tracker-host:3000 npm run cli -- state
+```
+
+Deletion commands accept the entry IDs returned by `state` or `day show`. The CLI exits nonzero and prints a JSON error object when a command fails.
+
+See [`SKILL.md`](SKILL.md) for the agent-facing operating contract.
+
 For a production deployment, use the standard Next.js commands:
 
 ```sh
@@ -53,7 +84,7 @@ The official 2024 Adult Compendium MET reference is stored in `data/met-compendi
 
 - Estimated RMR uses Mifflin–St Jeor.
 - Baseline daily burn is RMR plus a 10% sedentary and food allowance.
-- Activities use an exact MET selected from the local Compendium table.
+- Activities snap to one best-matching Compendium row, then apply one explicit percentage adjustment to its net energy for context not represented by that row, such as a light carried load.
 - Net active energy excludes the resting energy for the same period:
 
 ```text
@@ -66,6 +97,6 @@ The official 2024 Adult Compendium MET reference is stored in `data/met-compendi
 
 ## AI configuration
 
-OpenRouter requests use `openai/gpt-5.6-terra`. AI prompts and structured responses use kilocalories. TNT terminology is applied only by the interface.
+OpenRouter requests use `openai/gpt-5.6-sol`. AI prompts and structured responses use kilocalories. TNT terminology is applied only by the interface.
 
 Food images are sent to OpenRouter for analysis but are not stored locally.
