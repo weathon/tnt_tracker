@@ -84,7 +84,7 @@ The official 2024 Adult Compendium MET reference is stored in `data/met-compendi
 ## Energy calculation
 
 - Estimated RMR uses Mifflin–St Jeor.
-- Baseline daily burn is RMR plus a 10% sedentary and food allowance.
+- Minimal daily baseline is `RMR × 1.20`, a deliberately conservative stationary-day floor with a small allowance for food thermogenesis and unavoidable non-walking movement. Deliberate walking, chores, commuting, and exercise are excluded and should be logged separately.
 - Activities snap to one best-matching Compendium row, then apply one explicit percentage adjustment to its net energy for context not represented by that row, such as a light carried load.
 - Net active energy excludes the resting energy for the same period:
 
