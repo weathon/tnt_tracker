@@ -57,7 +57,11 @@ Include duration, distance, steps, pace, carried load, resistance, and heart rat
 
 ```sh
 npm run cli -- activity add --date 2026-08-09 --text "Swam 1.6 km in 50 minutes, average heart rate 140 bpm"
+npm run cli -- activity add --date 2026-08-09 --image ./workout-summary.png
+npm run cli -- activity add --text "Use the second interval only" --image ./tracker.png
 ```
+
+Activity accepts text, one or more uploaded tracker screenshots/photos, or both. Repeat `--image` for multiple files. Images are analyzed but not stored.
 
 ## Record medication
 

@@ -44,6 +44,7 @@ npm run cli -- state
 npm run cli -- day show --date 2026-08-09
 npm run cli -- medication add --name "Vitamin D" --dose "1000 IU" --time 09:00
 npm run cli -- activity add --text "45 minutes brisk walking"
+npm run cli -- activity add --image ./workout-summary.png
 npm run cli -- food add --time 12:30 --text "chicken sandwich and coffee"
 npm run cli -- food add --time 18:00 --image ./dinner.jpg
 ```
@@ -99,4 +100,4 @@ The official 2024 Adult Compendium MET reference is stored in `data/met-compendi
 
 OpenRouter requests use `openai/gpt-5.6-sol`. AI prompts and structured responses use kilocalories. TNT terminology is applied only by the interface.
 
-Food images are sent to OpenRouter for analysis but are not stored locally.
+Food and activity images are sent to OpenRouter for analysis but are not stored locally.
