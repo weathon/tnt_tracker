@@ -31,10 +31,14 @@ Commands:
   tracker set [--date DATE] --burn N|none [--factor N] [--position 0..1]
   food add [--date DATE] [--time HH:MM] [--text TEXT] [--image PATH ...]
   food delete [--date DATE] --id ID
+  food move [--date DATE] --id ID --to-date DATE --time HH:MM
   activity add [--date DATE] [--text TEXT] [--image PATH ...]
   activity delete [--date DATE] --id ID
+  activity move [--date DATE] --id ID --to-date DATE --time HH:MM
   medication add [--date DATE] [--time HH:MM] --name NAME --dose TEXT
   medication delete [--date DATE] --id ID
+  weight add [--date DATE] [--time HH:MM] --kg NUMBER
+  weight delete [--date DATE] --id ID
 
 All successful commands print JSON. Dates and times default to local now.`)}
 
@@ -47,10 +51,14 @@ async function main(){
  if(command==="tracker"&&action==="set"){const burn=required("burn");return send("/api/day","PUT",{date,trackerBurn:burn==="none"?null:Number(burn),correctionFactor:Number(one("factor","1")),rulerPosition:Number(one("position","0.5"))})}
  if(command==="food"&&action==="add"){const form=new FormData();form.set("date",date);form.set("time",one("time",now()));form.set("text",one("text",""));for(const file of opt.image??[]){const type=mime(file);if(!type)throw new Error(`Unsupported image extension: ${file}`);form.append("images",new Blob([await readFile(file)],{type}),path.basename(file))}return call("/api/food",{method:"POST",body:form})}
  if(command==="food"&&action==="delete")return send("/api/food","DELETE",{date,id:required("id")});
+ if(command==="food"&&action==="move")return send("/api/food","PATCH",{date,id:required("id"),newDate:required("to-date"),time:required("time")});
  if(command==="activity"&&action==="add"){const form=new FormData();form.set("date",date);form.set("text",one("text",""));for(const file of opt.image??[]){const type=mime(file);if(!type)throw new Error(`Unsupported image extension: ${file}`);form.append("images",new Blob([await readFile(file)],{type}),path.basename(file))}if(!one("text")&&!(opt.image?.length))throw new Error("Provide --text or --image");return call("/api/activity",{method:"POST",body:form})}
  if(command==="activity"&&action==="delete")return send("/api/activity","DELETE",{date,id:required("id")});
+ if(command==="activity"&&action==="move")return send("/api/activity","PATCH",{date,id:required("id"),newDate:required("to-date"),time:required("time")});
  if(command==="medication"&&action==="add")return send("/api/medication","POST",{date,time:one("time",now()),name:required("name"),dose:required("dose")});
  if(command==="medication"&&action==="delete")return send("/api/medication","DELETE",{date,id:required("id")});
+ if(command==="weight"&&action==="add")return send("/api/weight","POST",{date,time:one("time",now()),weightKg:Number(required("kg"))});
+ if(command==="weight"&&action==="delete")return send("/api/weight","DELETE",{date,id:required("id")});
  throw new Error(`Unknown command: ${[command,action].filter(Boolean).join(" ")}. Run tnt-tracker help.`)
 }
 

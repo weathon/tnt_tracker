@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { askOpenRouter } from "@/lib/ai";
 
-const inputSchema=z.object({energyKcal:z.number().finite().positive().max(10_000_000)});
-const resultSchema=z.object({facts:z.array(z.string().trim().min(1).max(300)).length(11)});
-const jsonSchema={type:"object",additionalProperties:false,properties:{facts:{type:"array",minItems:11,maxItems:11,items:{type:"string",minLength:1,maxLength:300}}},required:["facts"]};
+const inputSchema=z.object({energyKcal:z.number()});
+const resultSchema=z.object({facts:z.array(z.string())});
+const jsonSchema={type:"object",additionalProperties:false,properties:{facts:{type:"array",items:{type:"string"}}},required:["facts"]};
 
 export async function POST(request:Request){
   try{
@@ -19,7 +18,7 @@ export async function POST(request:Request){
     const gcmsHours=kWh/4.05;
     const fatGrams=energyKcal/7.7;
     const iphoneCharges=kWh*1000/12.98;
-    const prompt=`Generate exactly 11 concise, playful, concrete analogies for this amount of energy: exactly one fact for each unit listed below, in the same order. Begin each fact with its unit name. Each fact must genuinely relate its matching numeric value to something recognizable rather than merely defining or repeating the unit.
+    const prompt=`Generate exactly 11 playful, concrete analogies for this amount of energy: exactly one fact for each unit listed below, in the same order. Begin each fact with its unit name. Each fact must genuinely relate its matching numeric value to something recognizable rather than merely defining or repeating the unit.
 
 Requirements:
 - Freely choose the most interesting comparison for each unit and perform any necessary reasoning yourself. Do not reuse a fixed set of analogy templates.
@@ -41,10 +40,10 @@ Rounded energy values:
 - ${boe.toExponential(2)} barrels of oil equivalent
 - ${gcmsHours.toPrecision(3)} GC–MS × Hour, assuming a 4.05 kW Agilent 8890 GC plus 5977-series MSD
 - ${fatGrams.toPrecision(3)} g fat equivalent at 7.7 food kilocalories per g
-- ${iphoneCharges.toPrecision(3)} ideal iPhone 15 full charges at 12.98 Wh each, excluding charging losses
-
-Return JSON only.`;
-    const parsed=resultSchema.parse(await askOpenRouter([{type:"text",text:prompt}],jsonSchema,"energy_fun_facts","openai/gpt-5.6-luna"));
+- ${iphoneCharges.toPrecision(3)} ideal iPhone 15 full charges at 12.98 Wh each, excluding charging losses`;
+    const key=process.env.OPENROUTER_API_KEY;if(!key)throw new Error("OPENROUTER_API_KEY is not configured");
+    const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({model:"openai/gpt-5.6-luna",messages:[{role:"user",content:[{type:"text",text:prompt}]}],response_format:{type:"json_schema",json_schema:{name:"energy_fun_facts",strict:true,schema:jsonSchema}}})});
+    if(!response.ok)throw new Error(`OpenRouter error ${response.status}: ${await response.text()}`);const body=await response.json();const raw=body?.choices?.[0]?.message?.content;if(typeof raw!=="string")throw new Error("OpenRouter returned no structured content");const parsed=resultSchema.parse(JSON.parse(raw));
     return NextResponse.json(parsed);
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Could not generate fun facts"},{status:400})}
 }

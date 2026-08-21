@@ -43,6 +43,7 @@ npm run cli -- help
 npm run cli -- state
 npm run cli -- day show --date 2026-08-09
 npm run cli -- medication add --name "Vitamin D" --dose "1000 IU" --time 09:00
+npm run cli -- weight add --kg 78.4
 npm run cli -- activity add --text "45 minutes brisk walking"
 npm run cli -- activity add --image ./workout-summary.png
 npm run cli -- food add --time 12:30 --text "chicken sandwich and coffee"

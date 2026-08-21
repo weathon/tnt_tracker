@@ -1,5 +1,5 @@
 import type { Day, Profile } from "./types";
-export const rmr = (p: Profile | null) => p ? 10*p.weightKg + 6.25*p.heightCm - 5*p.age + (p.sex === "male" ? 5 : -161) : null;
+export const rmr = (p: Profile | null) => !p ? null : p.sex === "male" ? 10*p.weightKg + 6.25*p.heightCm - 5*p.age + 5 : p.sex === "female" ? 10*p.weightKg + 6.25*p.heightCm - 5*p.age - 161 : null;
 export const dayMetrics = (p: Profile | null, d?: Day, activityOverride?: number) => {
   const intake = d?.foods.reduce((s,x)=>s+x.energy,0) ?? 0;
   const activity = activityOverride ?? d?.activities.reduce((s,x)=>s+x.activeEnergy,0) ?? 0;

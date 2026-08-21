@@ -71,14 +71,25 @@ npm run cli -- medication add --date 2026-08-09 --time 09:00 --name "Vitamin D" 
 
 Medication name, dose or notes, and time are required.
 
+## Record weight
+
+Logging weight also updates the profile weight used by baseline and activity calculations.
+
+```sh
+npm run cli -- weight add --date 2026-08-09 --time 08:00 --kg 78.4
+```
+
 ## Delete entries
 
 Obtain IDs with `day show`, then delete by type:
 
 ```sh
 npm run cli -- food delete --date 2026-08-09 --id ENTRY_ID
+npm run cli -- food move --date 2026-08-10 --id ENTRY_ID --to-date 2026-08-09 --time 23:55
 npm run cli -- activity delete --date 2026-08-09 --id ENTRY_ID
+npm run cli -- activity move --date 2026-08-10 --id ENTRY_ID --to-date 2026-08-09 --time 23:55
 npm run cli -- medication delete --date 2026-08-09 --id ENTRY_ID
+npm run cli -- weight delete --date 2026-08-09 --id ENTRY_ID
 ```
 
 ## Remote server
