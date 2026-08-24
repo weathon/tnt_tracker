@@ -33,5 +33,7 @@ async function persistState(state:State,etag?:string){
  await fs.mkdir(path.dirname(file),{recursive:true});const tmp=file+".tmp";await fs.writeFile(tmp,JSON.stringify(state,null,2));await fs.rename(tmp,file);
 }
 function enqueue(job:()=>Promise<State>):Promise<State>{const result=queue.then(job);queue=result.then(()=>undefined,()=>undefined);return result}
-export function updateState(fn:(s:State)=>void):Promise<State>{return enqueue(async()=>{for(let attempt=0;attempt<3;attempt++){const {state,etag}=await readStoredState();fn(state);try{await persistState(state,etag);return state}catch(error){if(!(error instanceof BlobPreconditionFailedError)||attempt===2)throw error}}throw new Error("Could not save tracker data")})}
+const isBlobConflict=(error:unknown)=>error instanceof BlobPreconditionFailedError||(error instanceof Error&&(error.name==="BlobPreconditionFailedError"||error.message.includes("ETag mismatch")));
+const retryDelay=(attempt:number)=>new Promise(resolve=>setTimeout(resolve,25*2**attempt+Math.random()*25));
+export function updateState(fn:(s:State)=>void):Promise<State>{return enqueue(async()=>{for(let attempt=0;attempt<8;attempt++){const {state,etag}=await readStoredState();fn(state);try{await persistState(state,etag);return state}catch(error){if(!isBlobConflict(error)||attempt===7)throw error;await retryDelay(attempt)}}throw new Error("Could not save tracker data")})}
 export function replaceState(state:State):Promise<State>{return enqueue(async()=>{const replacement=structuredClone(state);await persistState(replacement);return replacement})}
