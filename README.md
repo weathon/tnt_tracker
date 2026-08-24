@@ -78,6 +78,10 @@ npm start
 
 Application records are stored in `data/tracker.json`. This file is excluded from Git so personal profile, food, and activity data are not committed.
 
+The **Data & backup** card exports every saved record to a versioned JSON file. Import validates that file and, after confirmation, replaces the current dataset. Export the current data first if you may want to undo an import.
+
+> **Vercel note:** the current JSON-file store requires a persistent writable filesystem. A standard Vercel Function filesystem is not durable, so configure a durable data store before relying on a Vercel deployment for live records. Vercel Authentication protects access but does not provide persistence.
+
 Food entries store the selected meal time. Medications are tracked separately by name, dose or notes, and time; medication records are never sent through food analysis.
 
 The official 2024 Adult Compendium MET reference is stored in `data/met-compendium.json`. Its source is the [Compendium of Physical Activities](https://pacompendium.com/adult-compendium/). The checked-in import script documents how the local table was produced.
