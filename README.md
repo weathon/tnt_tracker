@@ -80,7 +80,7 @@ Application records are stored in `data/tracker.json`. This file is excluded fro
 
 The **Data & backup** card exports every saved record to a versioned JSON file. Import validates that file and, after confirmation, replaces the current dataset. Export the current data first if you may want to undo an import.
 
-> **Vercel note:** the current JSON-file store requires a persistent writable filesystem. A standard Vercel Function filesystem is not durable, so configure a durable data store before relying on a Vercel deployment for live records. Vercel Authentication protects access but does not provide persistence.
+Local development stores records in `data/tracker.json`. For Vercel deployments, create a **private Blob store** from the project's Storage tab and redeploy. Vercel supplies `BLOB_READ_WRITE_TOKEN` automatically, and the app then stores all live data in `fuel-and-motion/tracker.json` in that private store. If no Blob store is attached, deployed routes return a configuration error instead of attempting to write to Vercel's read-only filesystem.
 
 Food entries store the selected meal time. Medications are tracked separately by name, dose or notes, and time; medication records are never sent through food analysis.
 
