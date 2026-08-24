@@ -27,7 +27,7 @@ Environment:
 Commands:
   state
   day show [--date YYYY-MM-DD]
-  profile set --sex male|female --age N --height CM --weight KG
+  profile set --sex male|female --age N --height CM
   tracker set [--date DATE] --burn N|none [--factor N] [--position 0..1]
   food add [--date DATE] [--time HH:MM] [--text TEXT] [--image PATH ...]
   food delete [--date DATE] --id ID
@@ -47,7 +47,7 @@ async function main(){
  const date=one("date",today());
  if(command==="state")return call("/api/state");
  if(command==="day"&&action==="show"){const state=await call("/api/state");return {date,profile:state.profile,day:state.days?.[date]??null}}
- if(command==="profile"&&action==="set")return send("/api/profile","PUT",{sex:required("sex"),age:Number(required("age")),heightCm:Number(required("height")),weightKg:Number(required("weight"))});
+ if(command==="profile"&&action==="set")return send("/api/profile","PUT",{sex:required("sex"),age:Number(required("age")),heightCm:Number(required("height"))});
  if(command==="tracker"&&action==="set"){const burn=required("burn");return send("/api/day","PUT",{date,trackerBurn:burn==="none"?null:Number(burn),correctionFactor:Number(one("factor","1")),rulerPosition:Number(one("position","0.5"))})}
  if(command==="food"&&action==="add"){const form=new FormData();form.set("date",date);form.set("time",one("time",now()));form.set("text",one("text",""));for(const file of opt.image??[]){const type=mime(file);if(!type)throw new Error(`Unsupported image extension: ${file}`);form.append("images",new Blob([await readFile(file)],{type}),path.basename(file))}return call("/api/food",{method:"POST",body:form})}
  if(command==="food"&&action==="delete")return send("/api/food","DELETE",{date,id:required("id")});

@@ -1,4 +1,4 @@
-export type Profile = { sex: string; age: number; heightCm: number; weightKg: number };
+export type Profile = { sex: string; age: number; heightCm: number };
 export type FoodEntry = { id: string; name: string; amount: string; energy: number; time?: string; sourceText?: string; createdAt: string };
 export type ActivityEntry = { id: string; name: string; duration: string; time?: string; durationMinutes?: number; met?: number; baseMet?: number; adjustmentPercent?: number; averageHeartRateBpm?: number; compendiumCode?: string; metRationale?: string; activeEnergy: number; sourceText: string; createdAt: string };
 export type MedicationDefinition = { id: string; name: string; dose: string; createdAt: string };
