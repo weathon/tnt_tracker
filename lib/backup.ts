@@ -37,6 +37,8 @@ const activity=z.object({
  baseMet:z.number().finite().optional(),
  adjustmentPercent:z.number().finite().optional(),
  averageHeartRateBpm:z.number().finite().optional(),
+ heartRateMet:z.number().finite().optional(),
+ energySource:z.enum(["displayed","met","met_hr_blend"]).optional(),
  compendiumCode:z.string().optional(),
  metRationale:z.string().optional(),
  activeEnergy:z.number().finite(),

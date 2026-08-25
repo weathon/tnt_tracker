@@ -91,6 +91,8 @@ The official 2024 Adult Compendium MET reference is stored in `data/met-compendi
 - Estimated RMR uses Mifflin–St Jeor.
 - Minimal daily baseline is `RMR × 1.20`, a deliberately conservative stationary-day floor with a small allowance for food thermogenesis and unavoidable non-walking movement. Deliberate walking, chores, commuting, and exercise are excluded and should be logged separately.
 - Activities snap to one best-matching Compendium row, then apply one explicit percentage adjustment to its net energy for context not represented by that row, such as a light carried load.
+- When an average heart rate of at least 100 bpm is available, a second MET estimate is derived from the [Keytel et al. heart-rate energy equation](https://pubmed.ncbi.nlm.nih.gov/15966347/) using age, biological sex, and current EMA weight. Its net MET contribution is bounded to 0.5–2× the table estimate, and final active energy weights the table and heart-rate MET estimates equally (50/50). Below 100 bpm, the table estimate is used because population heart-rate equations are unreliable at low intensity.
+- An active-energy value displayed by an uploaded workout tracker remains authoritative and is stored without blending.
 - Net active energy excludes the resting energy for the same period:
 
 ```text
