@@ -34,24 +34,32 @@ export const dayMetrics = (p: Profile | null, weightKg: number | null, d?: Day, 
   return { intake, activity, rmr: rest, baselineAllowance, baselineBurn, aiBurn, tracker, blended, balance: blended == null ? null : intake-blended };
 };
 export type CorrelationResult = { r: number; n: number; pValue: number; significant: boolean };
+export const CORRELATION_WINDOW = 7;
 export const calorieWeightCorrelation = (days: Record<string, Day>, profile: Profile | null): CorrelationResult | null => {
   const sorted = Object.keys(days).sort();
-  const pairs: { balance: number; weightDelta: number }[] = [];
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    const prevD = new Date(prev + "T12:00:00");
-    const currD = new Date(curr + "T12:00:00");
-    if (currD.getTime() - prevD.getTime() !== 86400000) continue;
-    const w0 = dailyWeight(days[prev]);
-    const w1 = dailyWeight(days[curr]);
-    if (w0 == null || w1 == null) continue;
-    const wPrev = emaWeightKg(days, prev);
-    const m = dayMetrics(profile, wPrev, days[prev]);
-    if (m.balance == null) continue;
-    pairs.push({ balance: m.balance, weightDelta: w1 - w0 });
+  const dailyBalances: Map<string, number> = new Map();
+  for (const key of sorted) {
+    const w = emaWeightKg(days, key);
+    const mm = dayMetrics(profile, w, days[key]);
+    if (mm.balance != null) dailyBalances.set(key, mm.balance);
   }
-  if (pairs.length < 7) return null;
+  const pairs: { balance: number; weightDelta: number }[] = [];
+  for (let i = CORRELATION_WINDOW; i < sorted.length; i++) {
+    const windowEnd = sorted[i];
+    const windowStart = sorted[i - CORRELATION_WINDOW];
+    const endD = new Date(windowEnd + "T12:00:00");
+    const startD = new Date(windowStart + "T12:00:00");
+    if (endD.getTime() - startD.getTime() !== CORRELATION_WINDOW * 86400000) continue;
+    const emaEnd = emaEndingAt(days, endD);
+    const emaStart = emaEndingAt(days, startD);
+    if (emaEnd == null || emaStart == null) continue;
+    const balances: number[] = [];
+    for (let j = i - CORRELATION_WINDOW; j < i; j++) { const b = dailyBalances.get(sorted[j]); if (b != null) balances.push(b); }
+    if (balances.length < CORRELATION_WINDOW) continue;
+    const avgBalance = balances.reduce((s, v) => s + v, 0) / balances.length;
+    pairs.push({ balance: Math.round(avgBalance), weightDelta: Math.round((emaEnd - emaStart) * 1000) / 1000 });
+  }
+  if (pairs.length < 4) return null;
   const n = pairs.length;
   const meanX = pairs.reduce((s, p) => s + p.balance, 0) / n;
   const meanY = pairs.reduce((s, p) => s + p.weightDelta, 0) / n;

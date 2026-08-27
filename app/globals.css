@@ -47,5 +47,6 @@ body:before{display:none}.appShell{min-height:100vh;background:var(--paper);colo
 .theme-paper .foodSuggestions{background:#eee9dc}.theme-paper .suggestionItem{background:rgba(255,253,247,.7);border-color:var(--line)}
 @media(max-width:520px){.foodSuggestions{grid-template-columns:1fr}.foodSuggestions button{grid-column:1}.suggestionGrid{grid-template-columns:1fr}}
 
+.correlationStats{font-size:12px;color:var(--muted);margin:0 0 8px;line-height:1.5}.correlationSig{color:var(--teal);font-weight:700}.correlationNoise{color:#a35649;font-weight:700}
 /* Full-data backup */
 .backupActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.backupActions button,.backupImport{min-height:44px;display:grid;place-items:center}.backupImport{background:transparent;color:var(--teal);border:1px solid var(--teal)}.backupNote,.backupSuccess{margin:12px 0 0;font-size:11px;line-height:1.45}.backupNote{color:var(--muted)}.backupSuccess{color:var(--teal);font-weight:700}.theme-midnight .backupImport,.theme-slate .backupImport{background:transparent;color:var(--teal)}@media(max-width:430px){.backupActions{grid-template-columns:1fr}}
