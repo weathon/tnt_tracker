@@ -37,29 +37,40 @@ export type CorrelationResult = { r: number; n: number; pValue: number; signific
 export const CORRELATION_WINDOW = 7;
 export const calorieWeightCorrelation = (days: Record<string, Day>, profile: Profile | null): CorrelationResult | null => {
   const sorted = Object.keys(days).sort();
-  const dailyBalances: Map<string, number> = new Map();
-  for (const key of sorted) {
-    const w = emaWeightKg(days, key);
-    const mm = dayMetrics(profile, w, days[key]);
-    if (mm.balance != null) dailyBalances.set(key, mm.balance);
+  const consecutive: string[][] = [[]];
+  for (let i = 0; i < sorted.length; i++) {
+    const run = consecutive[consecutive.length - 1];
+    if (run.length > 0) {
+      const prevD = new Date(run[run.length - 1] + "T12:00:00");
+      const currD = new Date(sorted[i] + "T12:00:00");
+      if (currD.getTime() - prevD.getTime() !== 86400000) consecutive.push([]);
+    }
+    consecutive[consecutive.length - 1].push(sorted[i]);
   }
   const pairs: { balance: number; weightDelta: number }[] = [];
-  for (let i = CORRELATION_WINDOW; i < sorted.length; i++) {
-    const windowEnd = sorted[i];
-    const windowStart = sorted[i - CORRELATION_WINDOW];
-    const endD = new Date(windowEnd + "T12:00:00");
-    const startD = new Date(windowStart + "T12:00:00");
-    if (endD.getTime() - startD.getTime() !== CORRELATION_WINDOW * 86400000) continue;
-    const emaEnd = emaEndingAt(days, endD);
-    const emaStart = emaEndingAt(days, startD);
-    if (emaEnd == null || emaStart == null) continue;
-    const balances: number[] = [];
-    for (let j = i - CORRELATION_WINDOW; j < i; j++) { const b = dailyBalances.get(sorted[j]); if (b != null) balances.push(b); }
-    if (balances.length < CORRELATION_WINDOW) continue;
-    const avgBalance = balances.reduce((s, v) => s + v, 0) / balances.length;
-    pairs.push({ balance: Math.round(avgBalance), weightDelta: Math.round((emaEnd - emaStart) * 1000) / 1000 });
+  for (const run of consecutive) {
+    const binCount = Math.floor(run.length / CORRELATION_WINDOW);
+    for (let b = 0; b < binCount; b++) {
+      const bin = run.slice(b * CORRELATION_WINDOW, (b + 1) * CORRELATION_WINDOW);
+      const weights: number[] = [];
+      const balances: number[] = [];
+      for (const key of bin) {
+        const dw = dailyWeight(days[key]);
+        if (dw != null) weights.push(dw);
+        const w = emaWeightKg(days, key);
+        const mm = dayMetrics(profile, w, days[key]);
+        if (mm.balance != null) balances.push(mm.balance);
+      }
+      if (weights.length < 3 || balances.length < 3) continue;
+      const avgWeight = weights.reduce((s, v) => s + v, 0) / weights.length;
+      const avgBalance = balances.reduce((s, v) => s + v, 0) / balances.length;
+      pairs.push({ balance: Math.round(avgBalance), weightDelta: Math.round(avgWeight * 1000) / 1000 });
+    }
   }
-  if (pairs.length < 4) return null;
+  if (pairs.length < 3) return null;
+  for (let i = pairs.length - 1; i > 0; i--) pairs[i] = { balance: pairs[i - 1].balance, weightDelta: Math.round((pairs[i].weightDelta - pairs[i - 1].weightDelta) * 1000) / 1000 };
+  pairs.shift();
+  if (pairs.length < 3) return null;
   const n = pairs.length;
   const meanX = pairs.reduce((s, p) => s + p.balance, 0) / n;
   const meanY = pairs.reduce((s, p) => s + p.weightDelta, 0) / n;
