@@ -30,7 +30,7 @@ test("splitting food creates two equal entries without losing energy", () => {
 });
 
 test("food estimate total is derived from its itemized calculation",()=>{
- const estimate=foodEstimateSchema.parse({name:"meal",amount:"1 bowl",items:[{name:"tofu",grams:100,kcal_per_100g:80,kcal:80,confidence:"high"},{name:"sauce",grams:20,kcal_per_100g:200,kcal:40,confidence:"low"}],total_kcal:120,total_range:[100,140]});
+ const estimate=foodEstimateSchema.parse({name:"meal",amount:"1 bowl",items:[{name:"tofu",grams:100,kcal_per_100g:80,kcal:80,confidence:"high"},{name:"sauce",grams:20,kcal_per_100g:200,kcal:40,confidence:"low"}],total_kcal:120,total_range:[100,140],macros:{protein_g:8,carbs_g:12,fat_g:5},sodium_mg:300});
  assert.equal(foodEstimateEnergy(estimate),120);
  assert.throws(()=>foodEstimateSchema.parse({...estimate,total_kcal:500}));
 });

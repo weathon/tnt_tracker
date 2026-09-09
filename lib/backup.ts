@@ -24,6 +24,8 @@ const food=z.object({
  energy:z.number().finite(),
  items:z.array(z.object({name:z.string(),grams:z.number().finite().nonnegative(),kcalPer100g:z.number().finite().nonnegative(),energy:z.number().finite().nonnegative(),confidence:z.enum(["high","medium","low"])}).strict()).optional(),
  energyRange:z.tuple([z.number().finite().nonnegative(),z.number().finite().nonnegative()]).optional(),
+ macros:z.object({proteinG:z.number().finite().nonnegative(),carbsG:z.number().finite().nonnegative(),fatG:z.number().finite().nonnegative()}).strict().optional(),
+ sodiumMg:z.number().finite().nonnegative().optional(),
  time:time.optional(),
  sourceText:z.string().optional(),
  createdAt,

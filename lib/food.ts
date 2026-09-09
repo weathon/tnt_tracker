@@ -7,6 +7,8 @@ export const foodEstimateSchema=z.object({
   items:z.array(z.object({name:z.string().trim().min(1),grams:z.number().finite().nonnegative(),kcal_per_100g:z.number().finite().nonnegative(),kcal:z.number().finite().nonnegative(),confidence:z.enum(["high","medium","low"])})).min(1),
   total_kcal:z.number().finite().nonnegative(),
   total_range:z.tuple([z.number().finite().nonnegative(),z.number().finite().nonnegative()]),
+  macros:z.object({protein_g:z.number().finite().nonnegative(),carbs_g:z.number().finite().nonnegative(),fat_g:z.number().finite().nonnegative()}),
+  sodium_mg:z.number().finite().nonnegative(),
 }).superRefine((estimate,ctx)=>{
   if(estimate.total_range[0]>estimate.total_range[1])ctx.addIssue({code:"custom",message:"total_range must be ordered"});
   const itemTotal=estimate.items.reduce((total,item)=>total+item.kcal,0);
