@@ -5,3 +5,4 @@ node_modules
 data/tracker.json
 *.tsbuildinfo
 nohup.out
+.DS_Store
