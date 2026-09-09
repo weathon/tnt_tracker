@@ -22,6 +22,8 @@ const food=z.object({
  name:z.string(),
  amount:z.string(),
  energy:z.number().finite(),
+ items:z.array(z.object({name:z.string(),grams:z.number().finite().nonnegative(),kcalPer100g:z.number().finite().nonnegative(),energy:z.number().finite().nonnegative(),confidence:z.enum(["high","medium","low"])}).strict()).optional(),
+ energyRange:z.tuple([z.number().finite().nonnegative(),z.number().finite().nonnegative()]).optional(),
  time:time.optional(),
  sourceText:z.string().optional(),
  createdAt,

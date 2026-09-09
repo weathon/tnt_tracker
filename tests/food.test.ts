@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { splitFoodEntry } from "../lib/food.ts";
+import { foodEstimateEnergy,foodEstimateSchema,splitFoodEntry } from "../lib/food.ts";
 
 test("splitting food creates two equal entries without losing energy", () => {
   const entry = {
@@ -27,4 +27,10 @@ test("splitting food creates two equal entries without losing energy", () => {
   assert.equal(second.userTasteScore, entry.userTasteScore);
   assert.equal(entry.amount, "1 sandwich");
   assert.equal(entry.energy, 501);
+});
+
+test("food estimate total is derived from its itemized calculation",()=>{
+ const estimate=foodEstimateSchema.parse({name:"meal",amount:"1 bowl",items:[{name:"tofu",grams:100,kcal_per_100g:80,kcal:80,confidence:"high"},{name:"sauce",grams:20,kcal_per_100g:200,kcal:40,confidence:"low"}],total_kcal:120,total_range:[100,140]});
+ assert.equal(foodEstimateEnergy(estimate),120);
+ assert.throws(()=>foodEstimateSchema.parse({...estimate,total_kcal:500}));
 });
