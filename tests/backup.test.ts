@@ -5,7 +5,7 @@ import type {State} from "../lib/types.ts";
 
 const state:State={
  profile:{sex:"female",age:34,heightCm:168},
- days:{"2026-08-23":{foods:[{id:"food-1",name:"Lunch",amount:"1 bowl",energy:600,time:"12:30",createdAt:"2026-08-23T19:30:00.000Z"}],activities:[],medications:[],weights:[{id:"weight-1",weightKg:65.2,time:"07:30",createdAt:"2026-08-23T14:30:00.000Z"}],trackerBurn:2100,correctionFactor:.9,rulerPosition:.5}},
+ days:{"2026-08-23":{foods:[{id:"food-1",name:"Lunch",amount:"1 bowl",energy:600,time:"12:30",createdAt:"2026-08-23T19:30:00.000Z"}],activities:[],medications:[],weights:[{id:"weight-1",weightKg:65.2,time:"07:30",createdAt:"2026-08-23T14:30:00.000Z"}],bloodPressures:[{id:"bp-1",systolic:120,diastolic:80,time:"08:00",createdAt:"2026-08-23T15:00:00.000Z"}],trackerBurn:2100,correctionFactor:.9,rulerPosition:.5}},
  medicationList:[],
  forgottenMedicationIds:["history-old"],
 };
@@ -22,9 +22,11 @@ test("backup import fills arrays omitted by older day records",()=>{
  const data=(backup.data as State);
  delete data.days["2026-08-23"].medications;
  delete data.days["2026-08-23"].weights;
+ delete data.days["2026-08-23"].bloodPressures;
  const parsed=parseBackup(backup);
  assert.deepEqual(parsed.days["2026-08-23"].medications,[]);
  assert.deepEqual(parsed.days["2026-08-23"].weights,[]);
+ assert.deepEqual(parsed.days["2026-08-23"].bloodPressures,[]);
 });
 
 test("backup import rejects files from another format",()=>{

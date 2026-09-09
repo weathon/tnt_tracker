@@ -6,7 +6,7 @@ const file = path.join(process.cwd(), "data", "tracker.json");
 const blobPath="fuel-and-motion/tracker.json";
 const initial: State = { profile:null, days:{}, medicationList:[] };
 let queue = Promise.resolve();
-export const blankDay = (): Day => ({foods:[],activities:[],medications:[],weights:[],trackerBurn:null,correctionFactor:1,rulerPosition:.5});
+export const blankDay = (): Day => ({foods:[],activities:[],medications:[],weights:[],bloodPressures:[],trackerBurn:null,correctionFactor:1,rulerPosition:.5});
 const medicationKey=(name:string,dose:string)=>`${name.trim().toLocaleLowerCase()}\u0000${dose.trim().toLocaleLowerCase()}`;
 const stableMedicationId=(key:string)=>{let hash=2166136261;for(const character of key){hash^=character.charCodeAt(0);hash=Math.imul(hash,16777619)}return `history-${(hash>>>0).toString(36)}`};
 export const medicationHistoryId=(name:string,dose:string)=>stableMedicationId(medicationKey(name,dose));

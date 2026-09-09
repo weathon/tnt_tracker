@@ -29,6 +29,8 @@ const food=z.object({
  saltG:z.number().finite().nonnegative().optional(),
  time:time.optional(),
  sourceText:z.string().optional(),
+ userTasteScore:z.number().finite().optional(),
+ userTasteNote:z.string().max(500).optional(),
  createdAt,
 }).strict();
 
@@ -54,11 +56,13 @@ const activity=z.object({
 const medicationDefinition=z.object({id,name:z.string(),dose:z.string(),createdAt}).strict();
 const medication=z.object({id,medicationId:z.string().optional(),name:z.string(),dose:z.string(),time,createdAt}).strict();
 const weight=z.object({id,weightKg:z.number().finite(),time,createdAt}).strict();
+const bloodPressure=z.object({id,systolic:z.number().int(),diastolic:z.number().int(),time,note:z.string().max(500).optional(),createdAt}).strict();
 const day=z.object({
  foods:z.array(food),
  activities:z.array(activity),
  medications:z.array(medication).default([]),
  weights:z.array(weight).default([]),
+ bloodPressures:z.array(bloodPressure).default([]),
  trackerBurn:z.number().finite().nullable(),
  correctionFactor:z.number().finite(),
  rulerPosition:z.number().finite(),
