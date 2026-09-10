@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { foodEstimateEnergy,foodEstimateSchema,splitFoodEntry } from "../lib/food.ts";
+import { duplicateFoodEntry,foodEstimateEnergy,foodEstimateSchema,splitFoodEntry } from "../lib/food.ts";
 
 test("splitting food creates two equal entries without losing energy", () => {
   const entry = {
@@ -36,3 +36,5 @@ test("food estimate total is derived from its itemized calculation",()=>{
  assert.throws(()=>foodEstimateSchema.parse({...estimate,salt_g:3}));
  assert.throws(()=>foodEstimateSchema.parse({...estimate,sodium_mg:600,salt_g:1.5}));
 });
+
+test("duplicating food preserves the entry details with a new identity",()=>{const entry={id:"original",name:"Toast",amount:"1 slice",energy:90,time:"08:00",createdAt:"old"};const copy=duplicateFoodEntry(entry,"copy");assert.equal(copy.id,"copy");assert.equal(copy.name,entry.name);assert.equal(copy.energy,entry.energy);assert.notEqual(copy.createdAt,entry.createdAt)});

@@ -33,3 +33,5 @@ export function splitFoodEntry(entry: FoodEntry, newId: string): [FoodEntry, Foo
     { ...shared, id: newId, energy: entry.energy - firstEnergy },
   ];
 }
+
+export function duplicateFoodEntry(entry:FoodEntry,newId:string):FoodEntry{return {...structuredClone(entry),id:newId,createdAt:new Date().toISOString()}}
