@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { duplicateFoodEntry,foodEstimateEnergy,foodEstimateSchema,splitFoodEntry } from "../lib/food.ts";
+import { duplicateFoodEntry,foodEstimateEnergy,foodEstimateSchema,foodPriceFromText,splitFoodEntry } from "../lib/food.ts";
 
 test("splitting food creates two equal entries without losing energy", () => {
   const entry = {
@@ -8,6 +8,7 @@ test("splitting food creates two equal entries without losing energy", () => {
     name: "Midnight snack",
     amount: "1 sandwich",
     energy: 501,
+    price: 12.5,
     time: "00:05",
     sourceText: "sandwich",
     userTasteScore: 8,
@@ -20,6 +21,8 @@ test("splitting food creates two equal entries without losing energy", () => {
   assert.equal(second.id, "other-half");
   assert.equal(first.energy, 250.5);
   assert.equal(second.energy, 250.5);
+  assert.equal(first.price,6.25);
+  assert.equal(second.price,6.25);
   assert.equal(first.energy + second.energy, entry.energy);
   assert.equal(first.amount, "Half of 1 sandwich");
   assert.equal(second.amount, "Half of 1 sandwich");
@@ -27,6 +30,7 @@ test("splitting food creates two equal entries without losing energy", () => {
   assert.equal(second.userTasteScore, entry.userTasteScore);
   assert.equal(entry.amount, "1 sandwich");
   assert.equal(entry.energy, 501);
+  assert.equal(entry.price,12.5);
 });
 
 test("food estimate total is derived from its itemized calculation",()=>{
@@ -38,3 +42,4 @@ test("food estimate total is derived from its itemized calculation",()=>{
 });
 
 test("duplicating food preserves the entry details with a new identity",()=>{const entry={id:"original",name:"Toast",amount:"1 slice",energy:90,time:"08:00",createdAt:"old"};const copy=duplicateFoodEntry(entry,"copy");assert.equal(copy.id,"copy");assert.equal(copy.name,entry.name);assert.equal(copy.energy,entry.energy);assert.notEqual(copy.createdAt,entry.createdAt)});
+test("food price can be recorded in the meal description",()=>{assert.equal(foodPriceFromText("ramen, price: 18.50"),18.5);assert.equal(foodPriceFromText("Price=0"),0);assert.equal(foodPriceFromText("ramen"),undefined)});

@@ -21,16 +21,18 @@ export const foodEstimateSchema=z.object({
 
 export type FoodEstimate=z.infer<typeof foodEstimateSchema>;
 export function foodEstimateEnergy(estimate:FoodEstimate){return estimate.items.reduce((total,item)=>total+item.kcal,0)}
+export function foodPriceFromText(text:string){const match=text.match(/(?:^|[\s,;])price\s*[:=]\s*(\d+(?:\.\d{1,2})?)(?:\s|$)/i);return match?Number(match[1]):undefined}
 
 const halfAmount = (amount: string) => `Half of ${amount}`;
 
 export function splitFoodEntry(entry: FoodEntry, newId: string): [FoodEntry, FoodEntry] {
   const firstEnergy = entry.energy / 2;
-  const shared = { ...entry, amount: halfAmount(entry.amount) };
+  const firstPrice=entry.price==null?undefined:entry.price/2;
+  const shared = { ...entry, amount: halfAmount(entry.amount),price:firstPrice };
 
   return [
     { ...shared, energy: firstEnergy },
-    { ...shared, id: newId, energy: entry.energy - firstEnergy },
+    { ...shared, id: newId, energy: entry.energy - firstEnergy,price:entry.price==null?undefined:entry.price-firstPrice! },
   ];
 }
 
