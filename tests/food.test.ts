@@ -42,4 +42,4 @@ test("food estimate total is derived from its itemized calculation",()=>{
 });
 
 test("duplicating food preserves the entry details with a new identity",()=>{const entry={id:"original",name:"Toast",amount:"1 slice",energy:90,time:"08:00",createdAt:"old"};const copy=duplicateFoodEntry(entry,"copy");assert.equal(copy.id,"copy");assert.equal(copy.name,entry.name);assert.equal(copy.energy,entry.energy);assert.notEqual(copy.createdAt,entry.createdAt)});
-test("food price can be recorded in the meal description",()=>{assert.equal(foodPriceFromText("ramen, price: 18.50"),18.5);assert.equal(foodPriceFromText("Price=0"),0);assert.equal(foodPriceFromText("ramen"),undefined)});
+test("food price can be recorded in the meal description",()=>{assert.equal(foodPriceFromText("ramen, price: 18.50"),18.5);assert.equal(foodPriceFromText("Price=0"),0);assert.equal(foodPriceFromText("外卖花了32.5元"),32.5);assert.equal(foodPriceFromText("订单实付 ¥42"),42);assert.equal(foodPriceFromText("ramen"),undefined)});

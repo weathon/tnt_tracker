@@ -4,6 +4,7 @@ import type { FoodEntry } from "./types";
 export const foodEstimateSchema=z.object({
   name:z.string().trim().min(1),
   amount:z.string().trim().min(1),
+  price:z.number().finite().nonnegative().nullable().optional(),
   items:z.array(z.object({name:z.string().trim().min(1),grams:z.number().finite().nonnegative(),kcal_per_100g:z.number().finite().nonnegative(),kcal:z.number().finite().nonnegative(),protein_g:z.number().finite().nonnegative(),carbs_g:z.number().finite().nonnegative(),fat_g:z.number().finite().nonnegative(),sodium_mg:z.number().finite().nonnegative(),confidence:z.enum(["high","medium","low"])})).min(1),
   total_kcal:z.number().finite().nonnegative(),
   total_range:z.tuple([z.number().finite().nonnegative(),z.number().finite().nonnegative()]),
@@ -21,7 +22,16 @@ export const foodEstimateSchema=z.object({
 
 export type FoodEstimate=z.infer<typeof foodEstimateSchema>;
 export function foodEstimateEnergy(estimate:FoodEstimate){return estimate.items.reduce((total,item)=>total+item.kcal,0)}
-export function foodPriceFromText(text:string){const match=text.match(/(?:^|[\s,;])price\s*[:=]\s*(\d+(?:\.\d{1,2})?)(?:\s|$)/i);return match?Number(match[1]):undefined}
+export function foodPriceFromText(text:string){
+ const patterns=[
+  /(?:^|[\s,;])price\s*[:=]\s*([$¥￥]?\s*\d+(?:\.\d{1,2})?)(?:\s|$)/i,
+  /(?:[$¥￥]\s*)(\d+(?:\.\d{1,2})?)/,
+  /(?:花了|花费|消费|实付|支付|付款|一共|总计)\s*(?:人民币|rmb|cny|cad|元|块|[$¥￥])?\s*(\d+(?:\.\d{1,2})?)/i,
+  /(\d+(?:\.\d{1,2})?)\s*(?:元|块钱|块|人民币|rmb|cny|cad)/i,
+ ];
+ for(const pattern of patterns){const match=text.match(pattern);if(match){const value=Number(match[1].replace(/[$¥￥\s]/g,""));if(Number.isFinite(value)&&value>=0)return value}}
+ return undefined;
+}
 
 const halfAmount = (amount: string) => `Half of ${amount}`;
 
