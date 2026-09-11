@@ -5,7 +5,7 @@ export const foodEstimateSchema=z.object({
   name:z.string().trim().min(1),
   amount:z.string().trim().min(1),
   price:z.number().finite().nonnegative().nullable().optional(),
-  items:z.array(z.object({name:z.string().trim().min(1),grams:z.number().finite().nonnegative(),kcal_per_100g:z.number().finite().nonnegative(),kcal:z.number().finite().nonnegative(),protein_g:z.number().finite().nonnegative(),carbs_g:z.number().finite().nonnegative(),fat_g:z.number().finite().nonnegative(),sodium_mg:z.number().finite().nonnegative(),confidence:z.enum(["high","medium","low"])})).min(1),
+  items:z.array(z.object({name:z.string().trim().min(1),price:z.number().finite().nonnegative().nullable().optional(),grams:z.number().finite().nonnegative(),kcal_per_100g:z.number().finite().nonnegative(),kcal:z.number().finite().nonnegative(),protein_g:z.number().finite().nonnegative(),carbs_g:z.number().finite().nonnegative(),fat_g:z.number().finite().nonnegative(),sodium_mg:z.number().finite().nonnegative(),confidence:z.enum(["high","medium","low"])})).min(1),
   total_kcal:z.number().finite().nonnegative(),
   total_range:z.tuple([z.number().finite().nonnegative(),z.number().finite().nonnegative()]),
   macros:z.object({protein_g:z.number().finite().nonnegative(),carbs_g:z.number().finite().nonnegative(),fat_g:z.number().finite().nonnegative()}),
@@ -38,11 +38,12 @@ const halfAmount = (amount: string) => `Half of ${amount}`;
 export function splitFoodEntry(entry: FoodEntry, newId: string): [FoodEntry, FoodEntry] {
   const firstEnergy = entry.energy / 2;
   const firstPrice=entry.price==null?undefined:entry.price/2;
-  const shared = { ...entry, amount: halfAmount(entry.amount),price:firstPrice };
+  const halfItems=entry.items?.map(item=>({...item,price:item.price==null?undefined:item.price/2}));
+  const shared = { ...entry, amount: halfAmount(entry.amount),price:firstPrice,items:halfItems };
 
   return [
     { ...shared, energy: firstEnergy },
-    { ...shared, id: newId, energy: entry.energy - firstEnergy,price:entry.price==null?undefined:entry.price-firstPrice! },
+    { ...shared, id: newId, energy: entry.energy - firstEnergy,price:entry.price==null?undefined:entry.price-firstPrice!,items:entry.items?.map(item=>({...item,price:item.price==null?undefined:item.price-item.price/2})) },
   ];
 }
 

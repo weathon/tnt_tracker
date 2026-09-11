@@ -1,5 +1,5 @@
 export type Profile = { sex: string; age: number; heightCm: number };
-export type FoodEstimateItem = { name: string; grams: number; kcalPer100g: number; energy: number; proteinG?: number; carbsG?: number; fatG?: number; sodiumMg?: number; confidence: "high"|"medium"|"low" };
+export type FoodEstimateItem = { name: string; grams: number; kcalPer100g: number; energy: number; price?: number; proteinG?: number; carbsG?: number; fatG?: number; sodiumMg?: number; confidence: "high"|"medium"|"low" };
 export type FoodMacros = { proteinG: number; carbsG: number; fatG: number };
 export type FoodEntry = { id: string; name: string; amount: string; energy: number; price?: number; items?: FoodEstimateItem[]; energyRange?: [number,number]; macros?: FoodMacros; sodiumMg?: number; saltG?: number; time?: string; sourceText?: string; tasteScore?: number; userTasteScore?: number; userTasteNote?: string; createdAt: string };
 export type ActivityEntry = { id: string; name: string; duration: string; time?: string; durationMinutes?: number; met?: number; baseMet?: number; adjustmentPercent?: number; averageHeartRateBpm?: number; heartRateMet?: number; energySource?: "displayed"|"met"|"met_hr_blend"; compendiumCode?: string; metRationale?: string; activeEnergy: number; sourceText: string; createdAt: string };
