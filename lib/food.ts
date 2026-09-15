@@ -36,15 +36,15 @@ export function foodPriceFromText(text:string){
 const halfAmount = (amount: string) => `Half of ${amount}`;
 
 export function splitFoodEntry(entry: FoodEntry, newId: string): [FoodEntry, FoodEntry] {
-  const firstEnergy = entry.energy / 2;
-  const firstPrice=entry.price==null?undefined:entry.price/2;
-  const halfItems=entry.items?.map(item=>({...item,price:item.price==null?undefined:item.price/2}));
-  const shared = { ...entry, amount: halfAmount(entry.amount),price:firstPrice,items:halfItems };
-
-  return [
-    { ...shared, energy: firstEnergy },
-    { ...shared, id: newId, energy: entry.energy - firstEnergy,price:entry.price==null?undefined:entry.price-firstPrice!,items:entry.items?.map(item=>({...item,price:item.price==null?undefined:item.price-item.price/2})) },
-  ];
+  const half=(value:number|undefined)=>value==null?undefined:value/2;
+  const first:FoodEntry={
+    ...entry,amount:halfAmount(entry.amount),energy:entry.energy/2,price:half(entry.price),
+    macros:entry.macros&&{proteinG:entry.macros.proteinG/2,carbsG:entry.macros.carbsG/2,fatG:entry.macros.fatG/2},
+    sodiumMg:half(entry.sodiumMg),saltG:half(entry.saltG),
+    energyRange:entry.energyRange&&[entry.energyRange[0]/2,entry.energyRange[1]/2],
+    items:entry.items?.map(item=>({...item,grams:item.grams/2,energy:item.energy/2,price:half(item.price),proteinG:half(item.proteinG),carbsG:half(item.carbsG),fatG:half(item.fatG),sodiumMg:half(item.sodiumMg)})),
+  };
+  return [first,{...structuredClone(first),id:newId}];
 }
 
 export function duplicateFoodEntry(entry:FoodEntry,newId:string):FoodEntry{return {...structuredClone(entry),id:newId,createdAt:new Date().toISOString()}}
