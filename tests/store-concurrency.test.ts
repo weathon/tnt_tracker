@@ -12,17 +12,24 @@ function storage(t:TestContext){
  const originalToken=process.env.BLOB_READ_WRITE_TOKEN;
  process.env.BLOB_READ_WRITE_TOKEN="test-only";
  t.after(()=>{if(originalToken===undefined)delete process.env.BLOB_READ_WRITE_TOKEN;else process.env.BLOB_READ_WRITE_TOKEN=originalToken});
- const data={state:{profile:null,days:{[date]:{...blankDay(),foods:[food("original"),food("copy")]}},medicationList:[]} as State,version:1,exists:true,beforeWrite:()=>{},writes:0};
- const metadata=()=>({url:"https://test.invalid/tracker.json",downloadUrl:"https://test.invalid/tracker.json",pathname:"fuel-and-motion/tracker.json",contentType:"application/json",contentDisposition:"attachment",cacheControl:"no-store",uploadedAt:new Date(),size:0,etag:String(data.version)});
+ const data={state:{profile:null,days:{[date]:{...blankDay(),foods:[food("original"),food("copy")]}},medicationList:[]} as State,version:1,exists:true,beforeRead:()=>{},beforeWrite:()=>{},reads:0,writes:0};
+ const metadata=()=>({url:"https://test.invalid/tracker.json",downloadUrl:"https://test.invalid/tracker.json",pathname:"fuel-and-motion/tracker.json",contentType:"application/json",contentDisposition:"attachment",cacheControl:"no-store",uploadedAt:new Date(),size:0,etag:`"stored-${data.version}"`});
+ t.mock.method(blob,"head",async()=>{
+  if(!data.exists)throw new blob.BlobNotFoundError();
+  return metadata();
+ });
  t.mock.method(blob,"get",async(...[_path,options]:Parameters<typeof blob.get>)=>{
   assert.equal(options.useCache,false);
+  data.reads++;data.beforeRead();
   if(!data.exists)return null;
-  return {statusCode:200,stream:new Response(JSON.stringify(data.state)).body!,headers:new Headers(),blob:metadata()} as Awaited<ReturnType<typeof blob.get>>;
+  // Delivery can use a weak/different ETag. Only the storage metadata's tag
+  // is accepted by the write API, even when the underlying data is unchanged.
+  return {statusCode:200,stream:new Response(JSON.stringify(data.state)).body!,headers:new Headers(),blob:{...metadata(),etag:`W/"download-${data.version}"`}} as Awaited<ReturnType<typeof blob.get>>;
  });
  t.mock.method(blob,"put",async(...[_path,body,options]:Parameters<typeof blob.put>)=>{
   data.writes++;
   data.beforeWrite();
-  if(options.ifMatch!==undefined&&options.ifMatch!==String(data.version))throw new blob.BlobPreconditionFailedError();
+  if(options.ifMatch!==undefined&&options.ifMatch!==metadata().etag)throw new blob.BlobPreconditionFailedError();
   if(data.exists&&!options.allowOverwrite)throw new blob.BlobError("This blob already exists");
   data.state=JSON.parse(String(body));data.version++;data.exists=true;
   return metadata();
@@ -30,6 +37,22 @@ function storage(t:TestContext){
  return data;
 }
 const request=(method:string,body:object)=>new Request("http://test.invalid/api/food",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+
+test("an unchanged blob saves once even when its download ETag differs from storage metadata",async t=>{
+ const data=storage(t);
+ await updateState(state=>{state.days[date].trackerBurn=2000});
+ assert.equal(data.state.days[date].trackerBurn,2000);
+ assert.equal(data.writes,1);
+});
+
+test("a change between metadata and content reads is retried against the latest version",async t=>{
+ const data=storage(t);
+ data.beforeRead=()=>{if(data.reads===1){data.state.days[date].foods.push(food("new-meal"));data.version++}};
+ await updateState(state=>{state.days[date].trackerBurn=2000});
+ assert.equal(data.writes,2);
+ assert.deepEqual(data.state.days[date].foods.map(entry=>entry.id),["original","copy","new-meal"]);
+ assert.equal(data.state.days[date].trackerBurn,2000);
+});
 
 test("an overlapping save cannot restore a copy deleted by another server",async t=>{
  const data=storage(t);
