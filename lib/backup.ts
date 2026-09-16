@@ -74,6 +74,7 @@ export const backupStateSchema=z.object({
  days:z.record(dateKey,day),
  medicationList:z.array(medicationDefinition),
  forgottenMedicationIds:z.array(z.string()).optional(),
+ appliedMutationIds:z.array(z.string().min(1)).optional(),
 }).strict();
 
 export const backupSchema=z.object({

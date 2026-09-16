@@ -17,6 +17,11 @@ test("backup round-trips all application state",()=>{
  assert.deepEqual(parseBackup(JSON.parse(JSON.stringify(backup))),state);
 });
 
+test("backup preserves save receipts needed to reject delayed retries",()=>{
+ const recorded={...state,appliedMutationIds:["food:submission-1","mutation-2"]};
+ assert.deepEqual(parseBackup(createBackup(recorded)),recorded);
+});
+
 test("backup import fills arrays omitted by older day records",()=>{
  const backup=createBackup(state,"2026-08-23T20:00:00.000Z") as unknown as Record<string,unknown>;
  const data=(backup.data as State);

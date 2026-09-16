@@ -8,4 +8,4 @@ export type MedicationEntry = { id: string; medicationId?: string; name: string;
 export type WeightEntry = { id: string; weightKg: number; time: string; createdAt: string };
 export type BloodPressureEntry = { id: string; systolic: number; diastolic: number; time: string; note?: string; createdAt: string };
 export type Day = { foods: FoodEntry[]; activities: ActivityEntry[]; medications?: MedicationEntry[]; weights?: WeightEntry[]; bloodPressures?: BloodPressureEntry[]; trackerBurn: number | null; correctionFactor: number; rulerPosition: number };
-export type State = { profile: Profile | null; days: Record<string, Day>; medicationList: MedicationDefinition[]; forgottenMedicationIds?: string[] };
+export type State = { profile: Profile | null; days: Record<string, Day>; medicationList: MedicationDefinition[]; forgottenMedicationIds?: string[]; appliedMutationIds?: string[] };

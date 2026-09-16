@@ -10,7 +10,7 @@ export const blankDay = (): Day => ({foods:[],activities:[],medications:[],weigh
 const medicationKey=(name:string,dose:string)=>`${name.trim().toLocaleLowerCase()}\u0000${dose.trim().toLocaleLowerCase()}`;
 const stableMedicationId=(key:string)=>{let hash=2166136261;for(const character of key){hash^=character.charCodeAt(0);hash=Math.imul(hash,16777619)}return `history-${(hash>>>0).toString(36)}`};
 export const medicationHistoryId=(name:string,dose:string)=>stableMedicationId(medicationKey(name,dose));
-export function normalizeState(value:Partial<State>):State { const days=value.days??{};const saved=value.medicationList??[];const forgottenMedicationIds=value.forgottenMedicationIds??[];const forgotten=new Set(forgottenMedicationIds);const seen=new Set(saved.map(medication=>medicationKey(medication.name,medication.dose)));const history:MedicationDefinition[]=[];for(const day of Object.values(days)){for(const medication of day.medications??[]){const key=medicationKey(medication.name,medication.dose);const id=medicationHistoryId(medication.name,medication.dose);if(seen.has(key)||forgotten.has(id))continue;seen.add(key);history.push({id,name:medication.name,dose:medication.dose,createdAt:medication.createdAt})}}return {profile:value.profile??null,days,medicationList:[...saved,...history],forgottenMedicationIds}; }
+export function normalizeState(value:Partial<State>):State { const days=value.days??{};const saved=value.medicationList??[];const forgottenMedicationIds=value.forgottenMedicationIds??[];const forgotten=new Set(forgottenMedicationIds);const seen=new Set(saved.map(medication=>medicationKey(medication.name,medication.dose)));const history:MedicationDefinition[]=[];for(const day of Object.values(days)){for(const medication of day.medications??[]){const key=medicationKey(medication.name,medication.dose);const id=medicationHistoryId(medication.name,medication.dose);if(seen.has(key)||forgotten.has(id))continue;seen.add(key);history.push({id,name:medication.name,dose:medication.dose,createdAt:medication.createdAt})}}return {profile:value.profile??null,days,medicationList:[...saved,...history],forgottenMedicationIds,...(value.appliedMutationIds?{appliedMutationIds:value.appliedMutationIds}:{})}; }
 const hasBlobStorage=()=>Boolean(process.env.BLOB_READ_WRITE_TOKEN||(process.env.VERCEL_OIDC_TOKEN&&process.env.BLOB_STORE_ID));
 type StoredState={state:State;etag?:string};
 async function readStoredState(forUpdate=false):Promise<StoredState>{
@@ -43,10 +43,14 @@ async function persistState(state:State,snapshot?:StoredState){
 }
 function enqueue(job:()=>Promise<State>):Promise<State>{const result=queue.then(job);queue=result.then(()=>undefined,()=>undefined);return result}
 // The queue only covers this process. Blob versions protect against writes from
-// other server instances; reapply a mutation to the latest state on conflict.
-export function updateState(fn:(s:State)=>void):Promise<State>{return enqueue(async()=>{
+// other server instances. Save the mutation ID atomically with its changes so
+// a lost write acknowledgement cannot cause a committed mutation to run twice.
+export function updateState(fn:(s:State)=>void,mutationId:string=crypto.randomUUID()):Promise<State>{return enqueue(async()=>{
  for(let attempt=0;attempt<5;attempt++){
-  const snapshot=await readStoredState(true);fn(snapshot.state);
+  const snapshot=await readStoredState(true);
+  if(snapshot.state.appliedMutationIds?.includes(mutationId))return snapshot.state;
+  fn(snapshot.state);
+  (snapshot.state.appliedMutationIds??=[]).push(mutationId);
   try{await persistState(snapshot.state,snapshot);return snapshot.state}
   catch(error){if(!(error instanceof BlobPreconditionFailedError))throw error}
  }
