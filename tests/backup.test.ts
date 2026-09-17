@@ -44,3 +44,16 @@ test("legacy profile weight is preserved",()=>{
  const parsed=parseBackup(createBackup(legacy,"2026-08-23T20:00:00.000Z"));
  assert.equal((parsed.profile as typeof parsed.profile&{weightKg:number})?.weightKg,66);
 });
+
+
+test("backups retain food photos, original responses, and follow-up conversations",()=>{
+ const saved=structuredClone(state);
+ const entry=saved.days["2026-08-23"].foods[0];
+ entry.images=[{name:"lunch.png",url:"data:image/png;base64,iVBORw0KGgo="}];
+ entry.analysis={response:'{"name":"Lunch"}',explanation:"A bowl of rice with vegetables.",createdAt:entry.createdAt};
+ entry.conversation=[{id:"q",role:"user",content:"I ate half.",createdAt:entry.createdAt},{id:"a",role:"assistant",content:"Updated to half a bowl.",createdAt:entry.createdAt,updatedEntry:true,response:'{"reply":"Updated to half a bowl.","update":null}'}];
+ assert.deepEqual(parseBackup(JSON.parse(JSON.stringify(createBackup(saved)))),saved);
+ const invalid=createBackup(saved);
+ invalid.data.days["2026-08-23"].foods[0].images![0].url="javascript:alert(1)";
+ assert.throws(()=>parseBackup(invalid));
+});

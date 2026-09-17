@@ -2,6 +2,9 @@ import test,{type TestContext} from "node:test";
 import assert from "node:assert/strict";
 import {blankDay,readState,updateState} from "../lib/store.ts";
 import {DELETE,PATCH,POST} from "../app/api/food/route.ts";
+import {GET as FOOD_IMAGE} from "../app/api/food/image/route.ts";
+import {GET as GET_STATE} from "../app/api/state/route.ts";
+import {POST as FOLLOW_UP} from "../app/api/food/follow-up/route.ts";
 import type {State} from "../lib/types.ts";
 
 // Replace the storage boundary so these tests never use real tracker data or credentials.
@@ -82,7 +85,7 @@ function foodAnalysis(t:TestContext){
  let calls=0;
  t.mock.method(globalThis,"fetch",async(url:string)=>{
   assert.equal(url,"https://openrouter.ai/api/v1/chat/completions");calls++;
-  return Response.json({choices:[{message:{content:JSON.stringify({name:"Toast",amount:"1 slice",items:[{name:"Toast",grams:30,kcal_per_100g:300,kcal:90,protein_g:3,carbs_g:15,fat_g:2,sodium_mg:20,confidence:"medium"}],total_kcal:90,total_range:[80,100],macros:{protein_g:3,carbs_g:15,fat_g:2},sodium_mg:20,salt_g:.05})}}]});
+  return Response.json({choices:[{message:{content:JSON.stringify({name:"Toast",amount:"1 slice",items:[{name:"Toast",grams:30,kcal_per_100g:300,kcal:90,protein_g:3,carbs_g:15,fat_g:2,sodium_mg:20,confidence:"medium"}],explanation:"One slice of toast, with moderate confidence in the portion size."})}}]});
  });
  return ()=>calls;
 }
@@ -250,4 +253,147 @@ test("same-process mutations are serialized and reads retain the public state sh
  const state=await readState();
  assert.ok(state.days[date]);
  assert.equal("etag" in state,false);
+});
+
+const updatedEstimate={name:"Toast",amount:"Half a slice",price:2,items:[{name:"Toast",price:2,grams:15,kcal_per_100g:300,kcal:45,protein_g:1.5,carbs_g:7.5,fat_g:1,sodium_mg:10,confidence:"medium"}]};
+const photo={name:"toast.png",url:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="};
+function followUpAnalysis(t:TestContext,result:unknown={reply:"Updated to half a slice, about 45 kcal.",update:updatedEstimate},onRequest:(body:any)=>void=()=>{}){
+ foodAnalysis(t); // Supplies a test-only API key with cleanup.
+ let calls=0;
+ t.mock.method(globalThis,"fetch",async(url:string,init:RequestInit)=>{
+  assert.equal(url,"https://openrouter.ai/api/v1/chat/completions");calls++;onRequest(JSON.parse(String(init.body)));
+  return Response.json({choices:[{message:{content:JSON.stringify(result)}}]});
+ });
+ return ()=>calls;
+}
+function followUp(submissionId=crypto.randomUUID(),message="I only ate half the toast.",id="original"){
+ return request("POST",{id,submissionId,message});
+}
+
+test("food analysis saves the exact response and uploaded photo",async t=>{
+ const data=storage(t);foodAnalysis(t);
+ const form=new FormData();
+ form.set("date",date);form.set("time","08:00");form.set("text","Toast");
+ form.append("images",new Blob([Buffer.from(photo.url.split(",")[1],"base64")],{type:"image/png"}),photo.name);
+ const response=await POST(new Request("http://test.invalid/api/food",{method:"POST",body:form}));
+ assert.equal(response.status,200);
+ const entry=await response.json();
+ assert.equal(entry.images[0].url,`/api/food/image?id=${entry.id}&index=0`);
+ const image=await FOOD_IMAGE(new Request(`http://test.invalid${entry.images[0].url}`));
+ assert.equal(image.status,200);assert.equal(image.headers.get("Content-Type"),"image/png");
+ assert.equal(Buffer.from(await image.arrayBuffer()).toString("base64"),photo.url.split(",")[1]);
+ const stateResponse=await GET_STATE();
+ assert.ok(!(await stateResponse.text()).includes(photo.url));
+ assert.equal(JSON.parse(entry.analysis.response).items[0].kcal,90);
+ assert.equal("total_kcal" in JSON.parse(entry.analysis.response),false);
+ assert.equal(entry.energy,90);assert.equal(entry.macros.proteinG,3);
+ assert.equal(data.state.days[date].foods.at(-1)?.analysis?.response,entry.analysis.response);
+ assert.deepEqual((await readState()).days[date].foods.at(-1)?.images,[photo]);
+});
+
+test("food uploads reject non-images before calling the model or saving",async t=>{
+ const data=storage(t),calls=foodAnalysis(t);
+ const form=new FormData();form.set("date",date);form.set("time","08:00");
+ form.append("images",new Blob(["<script>alert(1)</script>"],{type:"image/png"}),"fake.png");
+ assert.equal((await POST(new Request("http://test.invalid/api/food",{method:"POST",body:form}))).status,400);
+ assert.equal(data.writes,0);assert.equal(calls(),0);
+});
+
+test("a follow-up sees saved photos and history, updates nutrition, and retains original evidence",async t=>{
+ const data=storage(t);
+ const entry=data.state.days[date].foods[0];
+ entry.images=[photo];entry.sourceText="Toast for breakfast";
+ entry.analysis={response:'{"original":true}',createdAt:entry.createdAt};
+ entry.userTasteScore=8;entry.userTasteNote="Crispy";
+ entry.conversation=[{id:"old-question",role:"user",content:"Is this toast?",createdAt:entry.createdAt},{id:"old-reply",role:"assistant",content:"Yes.",createdAt:entry.createdAt}];
+ followUpAnalysis(t,undefined,body=>{
+  assert.ok(body.messages.some((m:any)=>Array.isArray(m.content)&&m.content.some((c:any)=>c.image_url?.url===photo.url)));
+  assert.ok(body.messages.some((m:any)=>m.content==="Yes."));
+  assert.match(JSON.stringify(body.messages),/original/);
+  assert.match(body.messages.at(-1).content,/Current saved entry/);
+ });
+ const response=await FOLLOW_UP(followUp());
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.reply.content,"Updated to half a slice, about 45 kcal.");
+ assert.equal(body.reply.updatedEntry,true);
+ const saved=data.state.days[date].foods[0];
+ assert.equal(saved.energy,45);assert.equal(saved.macros?.proteinG,1.5);assert.equal(saved.sodiumMg,10);
+ assert.equal(saved.price,2);assert.equal(saved.userTasteScore,8);assert.equal(saved.userTasteNote,"Crispy");
+ assert.equal(saved.time,"08:00");assert.equal(saved.analysis?.response,entry.analysis.response);
+ assert.deepEqual(saved.images,[photo]);assert.equal(saved.conversation?.length,4);
+ assert.equal(data.state.days[date].foods[1].energy,90);
+});
+
+test("question-only follow-ups save a natural reply without changing the entry values",async t=>{
+ const data=storage(t),before=structuredClone(data.state.days[date].foods[0]);
+ followUpAnalysis(t,{reply:"This estimate assumes one 30 g slice of toast.",update:null});
+ assert.equal((await FOLLOW_UP(followUp(crypto.randomUUID(),"Why 90 kcal?"))).status,200);
+ const {conversation,...after}=data.state.days[date].foods[0];
+ assert.deepEqual(after,before);assert.equal(conversation?.at(-1)?.updatedEntry,false);
+});
+
+test("follow-up retries and overlapping requests commit a correction only once",async t=>{
+ const data=storage(t),calls=followUpAnalysis(t),id=crypto.randomUUID();
+ const responses=await Promise.all([FOLLOW_UP(followUp(id)),FOLLOW_UP(followUp(id))]);
+ assert.deepEqual(responses.map(response=>response.status),[200,200]);
+ assert.deepEqual(await responses[0].json(),await responses[1].json());
+ const callCount=calls();
+ assert.equal((await FOLLOW_UP(followUp(id))).status,200);
+ assert.equal(calls(),callCount);assert.equal(data.writes,1);
+ assert.equal(data.state.days[date].foods[0].conversation?.length,2);
+ assert.equal(data.state.days[date].foods[0].energy,45);
+});
+
+test("a follow-up retry recovers a lost acknowledgement without a second correction",async t=>{
+ const data=storage(t),calls=followUpAnalysis(t),id=crypto.randomUUID();
+ data.afterWrite=()=>{throw new Error("Connection lost after saving")};
+ assert.equal((await FOLLOW_UP(followUp(id))).status,400);
+ assert.equal((await FOLLOW_UP(followUp(id))).status,200);
+ assert.equal(calls(),1);assert.equal(data.writes,1);
+ assert.equal(data.state.days[date].foods[0].conversation?.length,2);
+});
+
+test("two different follow-ups cannot overwrite one another using a stale estimate",async t=>{
+ const data=storage(t);followUpAnalysis(t);
+ const responses=await Promise.all([FOLLOW_UP(followUp()),FOLLOW_UP(followUp())]);
+ assert.deepEqual(responses.map(response=>response.status).sort(),[200,409]);
+ assert.equal(data.writes,1);assert.equal(data.state.days[date].foods[0].conversation?.length,2);
+});
+
+test("follow-ups preserve a concurrent rating and follow an entry moved to another date",async t=>{
+ const data=storage(t),newDate="2026-09-15";
+ followUpAnalysis(t,undefined,()=>{
+  const [entry]=data.state.days[date].foods.splice(0,1);
+  entry.time="10:00";entry.userTasteScore=9;entry.userTasteNote="New note";
+  data.state.days[newDate]={...blankDay(),foods:[entry]};data.version++;
+ });
+ assert.equal((await FOLLOW_UP(followUp())).status,200);
+ const entry=data.state.days[newDate].foods[0];
+ assert.equal(entry.energy,45);assert.equal(entry.time,"10:00");assert.equal(entry.userTasteScore,9);assert.equal(entry.userTasteNote,"New note");
+ assert.equal(data.state.days[date].foods.length,1);
+});
+
+test("a changed or deleted meal cannot be restored by a delayed follow-up",async t=>{
+ const data=storage(t);
+ followUpAnalysis(t,undefined,()=>{data.state.days[date].foods[0].energy=30;data.version++});
+ assert.equal((await FOLLOW_UP(followUp())).status,409);
+ assert.equal(data.state.days[date].foods[0].energy,30);assert.equal(data.writes,0);
+ followUpAnalysis(t,undefined,()=>{data.state.days[date].foods=[];data.version++});
+ assert.equal((await FOLLOW_UP(followUp())).status,404);
+ assert.equal(data.state.days[date].foods.length,0);assert.equal(data.writes,0);
+});
+
+test("invalid ingredient nutrition cannot alter a meal or save a misleading success reply",async t=>{
+ const data=storage(t),calls=followUpAnalysis(t,{reply:"Changed it.",update:{...updatedEstimate,items:[{...updatedEstimate.items[0],protein_g:-5}]}});
+ assert.equal((await FOLLOW_UP(followUp())).status,400);
+ assert.equal(calls(),2);assert.equal(data.writes,0);
+ assert.equal(data.state.days[date].foods[0].energy,90);assert.equal(data.state.days[date].foods[0].conversation,undefined);
+});
+
+test("empty follow-ups and missing entries do not call the model",async t=>{
+ const data=storage(t),calls=followUpAnalysis(t);
+ assert.equal((await FOLLOW_UP(followUp(crypto.randomUUID()," "))).status,400);
+ assert.equal((await FOLLOW_UP(followUp(crypto.randomUUID(),"Why?","missing"))).status,404);
+ assert.equal(data.writes,0);assert.equal(calls(),0);
 });

@@ -1,3 +1,4 @@
+import {stateResponse} from "@/lib/food-response";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { blankDay,readState,updateState } from "@/lib/store";
@@ -39,5 +40,5 @@ export async function POST(r:Request){
   }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Analysis failed"},{status:400})}
 }
 
-export async function DELETE(r:Request){try{const {date,id}=await r.json();dateSchema.parse(date);if(typeof id!=="string")throw new Error("Invalid id");return NextResponse.json(await updateState(s=>{const d=s.days[date];if(d)d.activities=d.activities.filter(x=>x.id!==id)}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Invalid request"},{status:400})}}
-export async function PATCH(r:Request){try{const {date,id,newDate,time}=await r.json();return NextResponse.json(await updateState(s=>{const source=s.days[date];if(!source)return;const index=source.activities.findIndex(entry=>entry.id===id);if(index<0)return;const [entry]=source.activities.splice(index,1);entry.time=time;const destination=s.days[newDate]??blankDay();destination.activities.push(entry);s.days[newDate]=destination}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:String(e)},{status:400})}}
+export async function DELETE(r:Request){try{const {date,id}=await r.json();dateSchema.parse(date);if(typeof id!=="string")throw new Error("Invalid id");return stateResponse(await updateState(s=>{const d=s.days[date];if(d)d.activities=d.activities.filter(x=>x.id!==id)}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Invalid request"},{status:400})}}
+export async function PATCH(r:Request){try{const {date,id,newDate,time}=await r.json();return stateResponse(await updateState(s=>{const source=s.days[date];if(!source)return;const index=source.activities.findIndex(entry=>entry.id===id);if(index<0)return;const [entry]=source.activities.splice(index,1);entry.time=time;const destination=s.days[newDate]??blankDay();destination.activities.push(entry);s.days[newDate]=destination}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:String(e)},{status:400})}}

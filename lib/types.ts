@@ -1,7 +1,10 @@
 export type Profile = { sex: string; age: number; heightCm: number };
 export type FoodEstimateItem = { name: string; grams: number; kcalPer100g: number; energy: number; price?: number; proteinG?: number; carbsG?: number; fatG?: number; sodiumMg?: number; confidence: "high"|"medium"|"low" };
 export type FoodMacros = { proteinG: number; carbsG: number; fatG: number };
-export type FoodEntry = { id: string; name: string; amount: string; energy: number; price?: number; items?: FoodEstimateItem[]; energyRange?: [number,number]; macros?: FoodMacros; sodiumMg?: number; saltG?: number; time?: string; sourceText?: string; tasteScore?: number; userTasteScore?: number; userTasteNote?: string; createdAt: string };
+export type FoodImage = { name: string; url: string };
+export type FoodAnalysis = { response: string; explanation?: string; createdAt: string };
+export type FoodMessage = { id: string; role: "user"|"assistant"; content: string; createdAt: string; updatedEntry?: boolean; response?: string };
+export type FoodEntry = { id: string; name: string; amount: string; energy: number; price?: number; items?: FoodEstimateItem[]; energyRange?: [number,number]; macros?: FoodMacros; sodiumMg?: number; saltG?: number; time?: string; sourceText?: string; tasteScore?: number; userTasteScore?: number; userTasteNote?: string; createdAt: string; images?: FoodImage[]; analysis?: FoodAnalysis; conversation?: FoodMessage[] };
 export type ActivityEntry = { id: string; name: string; duration: string; time?: string; durationMinutes?: number; met?: number; baseMet?: number; adjustmentPercent?: number; averageHeartRateBpm?: number; heartRateMet?: number; energySource?: "displayed"|"met"|"met_hr_blend"; compendiumCode?: string; metRationale?: string; activeEnergy: number; sourceText: string; createdAt: string };
 export type MedicationDefinition = { id: string; name: string; dose: string; createdAt: string };
 export type MedicationEntry = { id: string; medicationId?: string; name: string; dose: string; time: string; createdAt: string };

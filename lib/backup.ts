@@ -1,5 +1,6 @@
 import {z} from "zod";
 import type {State} from "./types";
+import {foodImagesSchema} from "./food-images";
 
 export const BACKUP_APP="fuel-and-motion";
 export const BACKUP_VERSION=1 as const;
@@ -30,6 +31,9 @@ const food=z.object({
  saltG:z.number().finite().nonnegative().optional(),
  time:time.optional(),
  sourceText:z.string().optional(),
+ images:foodImagesSchema.optional(),
+ analysis:z.object({response:z.string(),explanation:z.string().optional(),createdAt}).strict().optional(),
+ conversation:z.array(z.object({id,role:z.enum(["user","assistant"]),content:z.string(),createdAt,updatedEntry:z.boolean().optional(),response:z.string().optional()}).strict()).optional(),
  userTasteScore:z.number().finite().optional(),
  userTasteNote:z.string().max(500).optional(),
  createdAt,

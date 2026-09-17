@@ -107,4 +107,8 @@ The official 2024 Adult Compendium MET reference is stored in `data/met-compendi
 
 OpenRouter requests use `openai/gpt-5.6-sol`. AI prompts and structured responses use kilocalories. TNT terminology is applied only by the interface.
 
-Food and activity images are sent to OpenRouter for analysis but are not stored locally.
+Food analysis returns independent ingredient estimates, including protein, carbohydrates, fat, and sodium for each ingredient. The model does not output meal nutrition totals or total ranges. The app adds the ingredient values without rounding the stored sums and derives salt from sodium; display formatting does not affect saved values.
+
+Food photos, the original analysis response, and follow-up conversations are saved with each food entry in the configured tracker storage and included in JSON backups. Open **Analysis & follow-up** on a meal to review its photos, ask questions, or correct the estimate. The model answers in natural language; corrections update that entry’s nutrition and price fields and refresh daily totals. Questions and hypothetical scenarios leave the estimate unchanged. Older entries can use follow-ups, but their previously discarded photos and original responses cannot be recovered.
+
+Food uploads support up to 6 JPEG, PNG, WebP, or GIF images, totaling at most 3 MB after browser resizing. Saved food photos are sent to OpenRouter again for follow-ups. Activity images are sent for analysis but are not saved.
