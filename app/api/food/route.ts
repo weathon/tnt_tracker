@@ -27,9 +27,9 @@ export async function POST(r:Request){try{
   const saved=await readState();
   if(saved.appliedMutationIds?.includes(mutationId))return submissionResponse(saved,submissionId);
   const images=await readFoodImages(files);
-  const {result:estimate,raw}=await analyzeFood(text,images);
+  const {result:estimate,raw,energy}=await analyzeFood(text,images);
   const createdAt=new Date().toISOString();
-  const entry={id:submissionId,...foodEstimateFields(estimate),price:explicitPrice??estimate.price??undefined,time,sourceText:text,createdAt,images,analysis:{response:raw,explanation:estimate.explanation,createdAt},conversation:[]};
+  const entry={id:submissionId,...foodEstimateFields(estimate),energy,price:explicitPrice??estimate.price??undefined,time,sourceText:text,createdAt,images,analysis:{response:raw,explanation:estimate.explanation,createdAt},conversation:[]};
   const state=await updateState(s=>{const d=s.days[date]??blankDay();d.foods.push(entry);s.days[date]=d},mutationId);
   return submissionResponse(state,submissionId);
 }catch(e){return NextResponse.json({error:e instanceof Error?e.message:String(e)},{status:400})}}

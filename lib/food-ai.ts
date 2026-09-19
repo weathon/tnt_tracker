@@ -9,13 +9,13 @@ type Content=string|({type:"text";text:string}|{type:"image_url";image_url:{url:
 type Message={role:"system"|"user"|"assistant";content:Content};
 const imageContent=(images:FoodImage[])=>images.map(image=>({type:"image_url" as const,image_url:{url:image.url}}));
 
-async function structuredFoodResponse<T>(name:string,schema:unknown,messages:Message[],validate:(value:unknown)=>T){
+async function structuredFoodResponse<T>(model:string,name:string,schema:unknown,messages:Message[],validate:(value:unknown)=>T){
  const key=process.env.OPENROUTER_API_KEY;
  if(!key)throw new Error("OPENROUTER_API_KEY is not configured");
  const analyze=async()=>{
   const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{
    method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},
-   body:JSON.stringify({model:"openai/gpt-5.6-sol",reasoning:{effort:"xhigh"},messages,response_format:{type:"json_schema",json_schema:{name,strict:true,schema}},provider:{require_parameters:true},plugins:[{id:"response-healing"}],stream:false}),
+   body:JSON.stringify({model,reasoning:{effort:"xhigh"},messages,response_format:{type:"json_schema",json_schema:{name,strict:true,schema}},provider:{require_parameters:true},plugins:[{id:"response-healing"}],stream:false}),
   });
   if(!response.ok)throw new Error(`OpenRouter error ${response.status}: ${await response.text()}`);
   const body=await response.json();
@@ -27,10 +27,16 @@ async function structuredFoodResponse<T>(name:string,schema:unknown,messages:Mes
 }
 
 const initialAnalysisSchema=foodEstimateSchema.safeExtend({explanation:z.string().trim().min(1).optional()});
-export function analyzeFood(text:string,images:FoodImage[]){
- return structuredFoodResponse("food_analysis",foodAnalysisJsonSchema,[{role:"user",content:[
+export async function analyzeFood(text:string,images:FoodImage[]){
+ const models=["google/gemini-3.7-flash","anthropic/claude-opus-5"];
+ const responses=await Promise.all(models.map(model=>structuredFoodResponse(model,"food_analysis",foodAnalysisJsonSchema,[{role:"user",content:[
   {type:"text",text:foodAnalysisPrompt(text,foodAnalysisJsonSchema)},...imageContent(images),
- ]}],value=>initialAnalysisSchema.parse(value));
+ ]}],value=>initialAnalysisSchema.parse(value))));
+ return {
+  result:responses[0].result,
+  energy:responses.reduce((sum,response)=>sum+response.result.items.reduce((total,item)=>total+item.kcal,0),0)/2,
+  raw:JSON.stringify(responses.map((response,index)=>({model:models[index],response:JSON.parse(response.raw)}))),
+ };
 }
 
 export function foodFollowUpMessages(entry:FoodEntry,question:string):Message[]{
@@ -44,5 +50,5 @@ export function foodFollowUpMessages(entry:FoodEntry,question:string):Message[]{
 }
 
 export function followUpFood(entry:FoodEntry,question:string){
- return structuredFoodResponse("food_follow_up",foodFollowUpJsonSchema,foodFollowUpMessages(entry,question),value=>foodFollowUpSchema.parse(value));
+ return structuredFoodResponse("openai/gpt-5.6-sol","food_follow_up",foodFollowUpJsonSchema,foodFollowUpMessages(entry,question),value=>foodFollowUpSchema.parse(value));
 }
