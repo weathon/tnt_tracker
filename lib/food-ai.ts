@@ -1,6 +1,6 @@
 import {z} from "zod";
 import {foodAnalysisPrompt} from "./ai";
-import {foodEstimateSchema} from "./food";
+import {foodEstimateFields,foodEstimateSchema} from "./food";
 import {foodAnalysisJsonSchema,foodEstimateJsonSchema,foodFollowUpJsonSchema} from "./food-ai-schema";
 import {foodFollowUpSchema} from "./food-conversation";
 import type {FoodEntry,FoodImage} from "./types";
@@ -32,9 +32,17 @@ export async function analyzeFood(text:string,images:FoodImage[]){
  const responses=await Promise.all(models.map(model=>structuredFoodResponse(model,"food_analysis",foodAnalysisJsonSchema,[{role:"user",content:[
   {type:"text",text:foodAnalysisPrompt(text,foodAnalysisJsonSchema)},...imageContent(images),
  ]}],value=>initialAnalysisSchema.parse(value))));
+ const [gemini,claude]=responses.map(response=>foodEstimateFields(response.result));
  return {
   result:responses[0].result,
-  energy:responses.reduce((sum,response)=>sum+response.result.items.reduce((total,item)=>total+item.kcal,0),0)/2,
+  energy:(gemini.energy+claude.energy)/2,
+  macros:{
+   proteinG:(gemini.macros.proteinG+claude.macros.proteinG)/2,
+   carbsG:(gemini.macros.carbsG+claude.macros.carbsG)/2,
+   fatG:(gemini.macros.fatG+claude.macros.fatG)/2,
+  },
+  sodiumMg:(gemini.sodiumMg+claude.sodiumMg)/2,
+  saltG:(gemini.saltG+claude.saltG)/2,
   raw:JSON.stringify(responses.map((response,index)=>({model:models[index],response:JSON.parse(response.raw)}))),
  };
 }
@@ -50,5 +58,5 @@ export function foodFollowUpMessages(entry:FoodEntry,question:string):Message[]{
 }
 
 export function followUpFood(entry:FoodEntry,question:string){
- return structuredFoodResponse("openai/gpt-5.6-sol","food_follow_up",foodFollowUpJsonSchema,foodFollowUpMessages(entry,question),value=>foodFollowUpSchema.parse(value));
+ return structuredFoodResponse("anthropic/claude-opus-5","food_follow_up",foodFollowUpJsonSchema,foodFollowUpMessages(entry,question),value=>foodFollowUpSchema.parse(value));
 }
