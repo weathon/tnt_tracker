@@ -22,18 +22,6 @@ test("backup preserves save receipts needed to reject delayed retries",()=>{
  assert.deepEqual(parseBackup(createBackup(recorded)),recorded);
 });
 
-test("backup import fills arrays omitted by older day records",()=>{
- const backup=createBackup(state,"2026-08-23T20:00:00.000Z") as unknown as Record<string,unknown>;
- const data=(backup.data as State);
- delete data.days["2026-08-23"].medications;
- delete data.days["2026-08-23"].weights;
- delete data.days["2026-08-23"].bloodPressures;
- const parsed=parseBackup(backup);
- assert.deepEqual(parsed.days["2026-08-23"].medications,[]);
- assert.deepEqual(parsed.days["2026-08-23"].weights,[]);
- assert.deepEqual(parsed.days["2026-08-23"].bloodPressures,[]);
-});
-
 test("backup import rejects files from another format",()=>{
  assert.throws(()=>parseBackup({app:"something-else",version:1,exportedAt:"now",data:state}));
  assert.throws(()=>parseBackup({app:"fuel-and-motion",version:2,exportedAt:"now",data:state}));

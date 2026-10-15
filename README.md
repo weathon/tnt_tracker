@@ -1,6 +1,8 @@
 # Fuel & Motion
 
-A single-user food and activity tracker built with Next.js. Food and activity descriptions are analyzed through OpenRouter, while the interface displays energy numerically as grams of TNT using the convention `1 kcal = 1 g TNT`.
+A single-user food tracker built with Next.js. Meals are analyzed through OpenRouter, and you type in the total calories your fitness tracker says you burned each day. The interface displays energy numerically as grams of TNT using the convention `1 kcal = 1 g TNT`.
+
+This is the simplified version. The earlier full version, with profile, weight, blood pressure, medication, activity analysis, burn blending, and insight charts, is kept on the `backup-full-version` branch.
 
 ## Requirements
 
@@ -42,10 +44,7 @@ The CLI controls a running server through the same validated routes as the webpa
 npm run cli -- help
 npm run cli -- state
 npm run cli -- day show --date 2026-08-09
-npm run cli -- medication add --name "Vitamin D" --dose "1000 IU" --time 09:00
-npm run cli -- weight add --kg 78.4
-npm run cli -- activity add --text "45 minutes brisk walking"
-npm run cli -- activity add --image ./workout-summary.png
+npm run cli -- burn set --kcal 2400
 npm run cli -- food add --time 12:30 --text "chicken sandwich and coffee"
 npm run cli -- food add --time 18:00 --image ./dinner.jpg
 ```
@@ -54,7 +53,7 @@ You can also invoke the executable directly:
 
 ```sh
 ./bin/tnt-tracker.mjs day show
-./bin/tnt-tracker.mjs tracker set --burn 2800 --factor 0.9 --position 0.5
+./bin/tnt-tracker.mjs burn set --date 2026-08-09 --kcal 2800
 ```
 
 Set `TNT_TRACKER_URL` when the server is not running at the default `http://localhost:3000`:
@@ -76,32 +75,15 @@ npm start
 
 ## Data
 
-Application records are stored in `data/tracker.json`. This file is excluded from Git so personal profile, food, and activity data are not committed.
+Application records are stored in `data/tracker.json`. This file is excluded from Git so personal food data is not committed.
 
 The **Data & backup** card exports every saved record to a versioned JSON file. Import validates that file and, after confirmation, replaces the current dataset. Export the current data first if you may want to undo an import.
 
 Local development stores records in `data/tracker.json`. For Vercel deployments, create a **private Blob store** from the project's Storage tab and redeploy. Vercel supplies `BLOB_READ_WRITE_TOKEN` automatically, and the app then stores all live data in `fuel-and-motion/tracker.json` in that private store. If no Blob store is attached, deployed routes return a configuration error instead of attempting to write to Vercel's read-only filesystem.
 
-Food entries store the selected meal time. Medications are tracked separately by name, dose or notes, and time; medication records are never sent through food analysis.
+Food entries store the selected meal time. Each day also stores one number: the total calories burned, copied from your tracker. "How much you can still eat" is that number minus the food logged for the day.
 
-The official 2024 Adult Compendium MET reference is stored in `data/met-compendium.json`. Its source is the [Compendium of Physical Activities](https://pacompendium.com/adult-compendium/). The checked-in import script documents how the local table was produced.
-
-## Energy calculation
-
-- Estimated RMR uses Mifflin–St Jeor.
-- Minimal daily baseline is `RMR × 1.20`, a deliberately conservative stationary-day floor with a small allowance for food thermogenesis and unavoidable non-walking movement. Deliberate walking, chores, commuting, and exercise are excluded and should be logged separately.
-- Activities snap to one best-matching Compendium row, then apply one explicit percentage adjustment to its net energy for context not represented by that row, such as a light carried load.
-- When an average heart rate of at least 100 bpm is available, a second MET estimate is derived from the [Keytel et al. heart-rate energy equation](https://pubmed.ncbi.nlm.nih.gov/15966347/) using age, biological sex, and current EMA weight. Its net MET contribution is bounded to 0.5–2× the table estimate, and final active energy weights the table and heart-rate MET estimates equally (50/50). Below 100 bpm, the table estimate is used because population heart-rate equations are unreliable at low intensity.
-- An active-energy value displayed by an uploaded workout tracker remains authoritative and is stored without blending.
-- Net active energy excludes the resting energy for the same period:
-
-```text
-(MET - 1) × 3.5 × weight_kg ÷ 200 × duration_minutes
-```
-
-- The AI burn endpoint is baseline daily burn plus logged net activity.
-- Corrected tracker burn is raw tracker burn multiplied by its correction factor.
-- The ruler blends the tracker and AI endpoints.
+Records created by the full version (profile, weight, blood pressure, medication, activity, burn-blend settings) are left untouched in storage and in JSON backups; this version just doesn't show them. Days created here store only `foods` and `trackerBurn`.
 
 ## AI configuration
 
@@ -111,4 +93,4 @@ Food analysis returns independent ingredient estimates, including protein, carbo
 
 Food photos, the original analysis response, and follow-up conversations are saved with each food entry in the configured tracker storage and included in JSON backups. Open **Analysis & follow-up** on a meal to review its photos, ask questions, or correct the estimate. The model answers in natural language; corrections update that entry’s nutrition and price fields and refresh daily totals. Questions and hypothetical scenarios leave the estimate unchanged. Older entries can use follow-ups, but their previously discarded photos and original responses cannot be recovered.
 
-Food uploads support up to 6 JPEG, PNG, WebP, or GIF images, totaling at most 3 MB after browser resizing. Saved food photos are sent to OpenRouter again for follow-ups. Activity images are sent for analysis but are not saved.
+Food uploads support up to 6 JPEG, PNG, WebP, or GIF images, totaling at most 3 MB after browser resizing. Saved food photos are sent to OpenRouter again for follow-ups.
