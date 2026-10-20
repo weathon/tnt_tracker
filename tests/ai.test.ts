@@ -22,3 +22,4 @@ test("initial analysis and follow-up schemas request ingredient nutrition only",
 });
 
 test("food follow-ups do not ask questions or invite more conversation",()=>{const system=foodFollowUpMessages({id:"f",name:"Toast",amount:"1 slice",energy:90,createdAt:"x"},"Why so high?")[0].content as string;assert.doesNotMatch(system,/ask a clarifying question/);assert.match(system,/never end the reply with a question/)});
+test("food follow-ups reply in a robotic, impersonal style",()=>{const system=foodFollowUpMessages({id:"f",name:"Toast",amount:"1 slice",energy:90,createdAt:"x"},"Why so high?")[0].content as string;assert.doesNotMatch(system,/Reply naturally/);assert.match(system,/Do not act nice or friendly/);assert.match(system,/purely robotic, impersonal chatbot style/)});
