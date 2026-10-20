@@ -1,6 +1,6 @@
 ---
 name: control-tnt-tracker
-description: Control the Fuel & Motion food, activity, medication, profile, tracker-burn, and daily energy records through its JSON CLI. Use when an agent needs to inspect tracker state, analyze and record food or activity, log medication, update profile or burn-blend inputs, or delete a dated entry in this repository's running application.
+description: Control the Fuel & Motion food and daily burned-calorie records through its JSON CLI. Use when an agent needs to inspect tracker state, analyze and record food, set the day's tracker burn, or delete or move a dated food entry in this repository's running application.
 ---
 
 # Control Fuel & Motion
@@ -13,10 +13,9 @@ Use `npm run cli -- <command>` from the repository root. The application server 
 - Never read, print, or modify `.env` or expose `OPENROUTER_API_KEY`.
 - Treat all output as JSON. Check the exit code; failures print `{ "error": "..." }` to stderr and exit nonzero.
 - Pass `--date YYYY-MM-DD` for historical records. Without it, the CLI uses the machine's local date.
-- Pass `--time HH:MM` when the user supplies a time. Without it, food and medication commands use local current time.
+- Pass `--time HH:MM` when the user supplies a time. Without it, food commands use local current time.
 - Read `day show` before deleting an entry. Delete only the exact returned ID requested by the user.
-- Expect food and activity additions to call the configured AI service. Do not retry automatically after an error.
-- Keep medication separate from food. Medication commands never call food analysis.
+- Expect food additions to call the configured AI service. Do not retry automatically after an error.
 - Interpret stored energy numbers as kilocalories internally; the interface displays them 1:1 as `g TNT`.
 
 ## Inspect records
@@ -27,17 +26,16 @@ npm run cli -- day show
 npm run cli -- day show --date 2026-08-09
 ```
 
-Prefer `day show` when only one date is relevant. It returns the global profile and the selected day's record.
+Prefer `day show` when only one date is relevant.
 
-## Update profile and burn blend
+## Set calories burned
+
+Use the total-calories number the user's fitness tracker reports for that day.
 
 ```sh
-npm run cli -- profile set --sex male --age 22 --height 173 --weight 80
-npm run cli -- tracker set --date 2026-08-09 --burn 2800 --factor 0.9 --position 0.5
-npm run cli -- tracker set --date 2026-08-09 --burn none --factor 1 --position 0.5
+npm run cli -- burn set --date 2026-08-09 --kcal 2400
+npm run cli -- burn set --date 2026-08-09 --kcal none
 ```
-
-Use ruler position `0` for the corrected tracker endpoint, `1` for the AI endpoint, or a decimal between them.
 
 ## Record food
 
@@ -51,45 +49,13 @@ npm run cli -- food add --time 18:00 --text "Only ate half" --image ./plate.jpg 
 
 Supported image extensions are `.jpg`, `.jpeg`, `.png`, `.webp`, and `.gif`.
 
-## Record activity
+## Delete or move entries
 
-Include duration, distance, steps, pace, carried load, resistance, and heart rate when known. Activity analysis selects one best Compendium base row, applies an explicit contextual percentage adjustment when needed, and stores net active energy above rest.
-
-```sh
-npm run cli -- activity add --date 2026-08-09 --text "Swam 1.6 km in 50 minutes, average heart rate 140 bpm"
-npm run cli -- activity add --date 2026-08-09 --image ./workout-summary.png
-npm run cli -- activity add --text "Use the second interval only" --image ./tracker.png
-```
-
-Activity accepts text, one or more uploaded tracker screenshots/photos, or both. Repeat `--image` for multiple files. Images are analyzed but not stored.
-
-## Record medication
-
-```sh
-npm run cli -- medication add --date 2026-08-09 --time 09:00 --name "Vitamin D" --dose "1000 IU with food"
-```
-
-Medication name, dose or notes, and time are required.
-
-## Record weight
-
-Logging weight also updates the profile weight used by baseline and activity calculations.
-
-```sh
-npm run cli -- weight add --date 2026-08-09 --time 08:00 --kg 78.4
-```
-
-## Delete entries
-
-Obtain IDs with `day show`, then delete by type:
+Obtain IDs with `day show`, then:
 
 ```sh
 npm run cli -- food delete --date 2026-08-09 --id ENTRY_ID
 npm run cli -- food move --date 2026-08-10 --id ENTRY_ID --to-date 2026-08-09 --time 23:55
-npm run cli -- activity delete --date 2026-08-09 --id ENTRY_ID
-npm run cli -- activity move --date 2026-08-10 --id ENTRY_ID --to-date 2026-08-09 --time 23:55
-npm run cli -- medication delete --date 2026-08-09 --id ENTRY_ID
-npm run cli -- weight delete --date 2026-08-09 --id ENTRY_ID
 ```
 
 ## Remote server

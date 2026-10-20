@@ -10,14 +10,6 @@ const dateKey=z.string().regex(/^\d{4}-\d{2}-\d{2}$/,"Expected a date in YYYY-MM
 const time=z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/,"Expected a time in HH:MM format");
 const createdAt=z.string().min(1);
 
-const profile=z.object({
- sex:z.string(),
- age:z.number().finite(),
- heightCm:z.number().finite(),
- // Kept for round-trip compatibility with backups made before weight logs replaced it.
- weightKg:z.number().finite().optional(),
-}).strict();
-
 const food=z.object({
  id,
  name:z.string(),
@@ -39,47 +31,17 @@ const food=z.object({
  createdAt,
 }).strict();
 
-const activity=z.object({
- id,
- name:z.string(),
- duration:z.string(),
- time:time.optional(),
- durationMinutes:z.number().finite().optional(),
- met:z.number().finite().optional(),
- baseMet:z.number().finite().optional(),
- adjustmentPercent:z.number().finite().optional(),
- averageHeartRateBpm:z.number().finite().optional(),
- heartRateMet:z.number().finite().optional(),
- energySource:z.enum(["displayed","met","met_hr_blend"]).optional(),
- compendiumCode:z.string().optional(),
- metRationale:z.string().optional(),
- activeEnergy:z.number().finite(),
- sourceText:z.string(),
- createdAt,
-}).strict();
-
-const medicationDefinition=z.object({id,name:z.string(),dose:z.string(),createdAt}).strict();
-const medication=z.object({id,medicationId:z.string().optional(),name:z.string(),dose:z.string(),time,createdAt}).strict();
-const weight=z.object({id,weightKg:z.number().finite(),time,createdAt}).strict();
-const bloodPressure=z.object({id,systolic:z.number().int(),diastolic:z.number().int(),time,note:z.string().max(500).optional(),createdAt}).strict();
-const day=z.object({
+// Fields from the earlier full version (profile, activity, weight, blood pressure,
+// medication, burn-blend settings) are not validated but are kept as-is.
+const day=z.looseObject({
  foods:z.array(food),
- activities:z.array(activity),
- medications:z.array(medication).default([]),
- weights:z.array(weight).default([]),
- bloodPressures:z.array(bloodPressure).default([]),
- trackerBurn:z.number().finite().nullable(),
- correctionFactor:z.number().finite(),
- rulerPosition:z.number().finite(),
-}).strict();
+ trackerBurn:z.number().finite().nullable().default(null),
+});
 
-export const backupStateSchema=z.object({
- profile:profile.nullable(),
+export const backupStateSchema=z.looseObject({
  days:z.record(dateKey,day),
- medicationList:z.array(medicationDefinition),
- forgottenMedicationIds:z.array(z.string()).optional(),
  appliedMutationIds:z.array(z.string().min(1)).optional(),
-}).strict();
+});
 
 export const backupSchema=z.object({
  app:z.literal(BACKUP_APP),

@@ -1,14 +1,10 @@
-export type Profile = { sex: string; age: number; heightCm: number };
 export type FoodEstimateItem = { name: string; grams: number; kcalPer100g: number; energy: number; price?: number; proteinG?: number; carbsG?: number; fatG?: number; sodiumMg?: number; confidence: "high"|"medium"|"low" };
 export type FoodMacros = { proteinG: number; carbsG: number; fatG: number };
 export type FoodImage = { name: string; url: string };
 export type FoodAnalysis = { response: string; explanation?: string; createdAt: string };
 export type FoodMessage = { id: string; role: "user"|"assistant"; content: string; createdAt: string; updatedEntry?: boolean; response?: string };
 export type FoodEntry = { id: string; name: string; amount: string; energy: number; price?: number; items?: FoodEstimateItem[]; energyRange?: [number,number]; macros?: FoodMacros; sodiumMg?: number; saltG?: number; time?: string; sourceText?: string; tasteScore?: number; userTasteScore?: number; userTasteNote?: string; createdAt: string; images?: FoodImage[]; analysis?: FoodAnalysis; conversation?: FoodMessage[] };
-export type ActivityEntry = { id: string; name: string; duration: string; time?: string; durationMinutes?: number; met?: number; baseMet?: number; adjustmentPercent?: number; averageHeartRateBpm?: number; heartRateMet?: number; energySource?: "displayed"|"met"|"met_hr_blend"; compendiumCode?: string; metRationale?: string; activeEnergy: number; sourceText: string; createdAt: string };
-export type MedicationDefinition = { id: string; name: string; dose: string; createdAt: string };
-export type MedicationEntry = { id: string; medicationId?: string; name: string; dose: string; time: string; createdAt: string };
-export type WeightEntry = { id: string; weightKg: number; time: string; createdAt: string };
-export type BloodPressureEntry = { id: string; systolic: number; diastolic: number; time: string; note?: string; createdAt: string };
-export type Day = { foods: FoodEntry[]; activities: ActivityEntry[]; medications?: MedicationEntry[]; weights?: WeightEntry[]; bloodPressures?: BloodPressureEntry[]; trackerBurn: number | null; correctionFactor: number; rulerPosition: number };
-export type State = { profile: Profile | null; days: Record<string, Day>; medicationList: MedicationDefinition[]; forgottenMedicationIds?: string[]; appliedMutationIds?: string[] };
+// Records written by the earlier full version (profile, activity, weight, blood
+// pressure, medication, burn-blend settings) are kept untouched in storage.
+export type Day = { foods: FoodEntry[]; trackerBurn: number | null; [legacy: string]: unknown };
+export type State = { days: Record<string, Day>; appliedMutationIds?: string[]; [legacy: string]: unknown };
