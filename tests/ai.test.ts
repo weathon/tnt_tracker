@@ -1,3 +1,4 @@
+import {foodFollowUpMessages} from "../lib/food-ai.ts";
 import {foodAnalysisJsonSchema,foodFollowUpJsonSchema} from "../lib/food-ai-schema.ts";
 import test from "node:test";import assert from "node:assert/strict";import {foodAnalysisPrompt,foodContent,foodSuggestionPrompt,summarizeFoodHistory} from "../lib/ai.ts";
 test("food payload places prompt before all base64 images",()=>{const c=foodContent("rice",[{mime:"image/png",base64:"aaa"},{mime:"image/jpeg",base64:"bbb"}]);assert.equal(c[0].type,"text");assert.match((c[0] as {text:string}).text,/rice/);assert.deepEqual(c.slice(1).map((x:any)=>x.image_url.url),["data:image/png;base64,aaa","data:image/jpeg;base64,bbb"])});
@@ -19,3 +20,5 @@ test("initial analysis and follow-up schemas request ingredient nutrition only",
   for(const name of ["protein_g","carbs_g","fat_g","sodium_mg"])assert.ok(properties.items.items.required.includes(name));
  }
 });
+
+test("food follow-ups do not ask questions or invite more conversation",()=>{const system=foodFollowUpMessages({id:"f",name:"Toast",amount:"1 slice",energy:90,createdAt:"x"},"Why so high?")[0].content as string;assert.doesNotMatch(system,/ask a clarifying question/);assert.match(system,/never end the reply with a question/)});
