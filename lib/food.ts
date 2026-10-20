@@ -48,4 +48,5 @@ export function splitFoodEntry(entry: FoodEntry, newId: string): [FoodEntry, Foo
   return [first,{...structuredClone(first),id:newId}];
 }
 
-export function duplicateFoodEntry(entry:FoodEntry,newId:string):FoodEntry{return {...structuredClone(entry),id:newId,createdAt:new Date().toISOString()}}
+// The copy is logged at the time it was duplicated when that time is given.
+export function duplicateFoodEntry(entry:FoodEntry,newId:string,time?:string):FoodEntry{return {...structuredClone(entry),id:newId,createdAt:new Date().toISOString(),...(time?{time}:{})}}
