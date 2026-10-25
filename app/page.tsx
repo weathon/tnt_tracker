@@ -2,13 +2,13 @@
 import {useEffect,useRef,useState} from "react";
 import DuplicateFoodButton from "./duplicate-food-button";
 import FoodConversation from "./food-conversation";
-import {foodEstimateFields,foodEstimateSchema} from "@/lib/food";
+import {foodModelBreakdowns} from "@/lib/food";
 import {createFoodSubmission} from "@/lib/food-submission";
 import DailyNutrition from "./daily-nutrition";
 import {latestLoader,runGuardedAction} from "@/lib/client-actions";
 import {createSerialQueue} from "@/lib/serial-queue";
 import {Bar,BarChart,CartesianGrid,ReferenceLine,ResponsiveContainer,Tooltip,XAxis,YAxis} from "recharts";
-import type {Day,FoodEntry,FoodEstimateItem,FoodMacros,State} from "@/lib/types";
+import type {Day,FoodEntry,State} from "@/lib/types";
 import {calorieDeltas,dayKey,dayEnergy,DELTA_DAYS,type DeltaPeriod} from "@/lib/calc";
 const pageOpenedAt=new Date();
 const pageOpenedDate=dayKey(pageOpenedAt);
@@ -80,28 +80,7 @@ function FoodCard({date,day,busy,run,unitMode,allDays}:{date:string,day?:Day,bus
 }
 function FoodEstimateDetails({entry}:{entry:FoodEntry}){
  if(!entry.items&&!entry.macros&&entry.sodiumMg==null&&entry.saltG==null)return null;
- let modelBreakdowns:{model:string;items:FoodEstimateItem[];energy:number;macros:FoodMacros;sodiumMg:number;saltG:number}[]|undefined;
- if(entry.items&&entry.macros&&entry.sodiumMg!=null&&entry.analysis?.response&&!entry.conversation?.some(message=>message.updatedEntry)){
-  const saved=JSON.parse(entry.analysis.response);
-  if(Array.isArray(saved)&&saved.length===2){
-   const original=saved.map((analysis:{model:string;response:unknown})=>{
-    const {items,energy,macros,sodiumMg,saltG}=foodEstimateFields(foodEstimateSchema.parse(analysis.response));
-    return {model:analysis.model,items,energy,macros,sodiumMg,saltG};
-   });
-   const factor=entry.items.reduce((sum,item)=>sum+item.energy,0)/original[0].energy;
-   if(Number.isFinite(factor)&&entry.items.length===original[0].items.length&&entry.items.every((item,index)=>{
-    const first=original[0].items[index];
-    return item.name===first.name&&(["grams","energy","proteinG","carbsG","fatG","sodiumMg"] as const).every(key=>Math.abs(item[key]!-first[key]!*factor)<1e-7);
-   })&&Math.abs(entry.energy-(original[0].energy+original[1].energy)*factor/2)<1e-7&&(["proteinG","carbsG","fatG"] as const).every(key=>Math.abs(entry.macros![key]-(original[0].macros[key]+original[1].macros[key])*factor/2)<1e-7)&&Math.abs(entry.sodiumMg-(original[0].sodiumMg+original[1].sodiumMg)*factor/2)<1e-7){
-    modelBreakdowns=original.map(breakdown=>({
-     model:breakdown.model,energy:breakdown.energy*factor,
-     macros:{proteinG:breakdown.macros.proteinG*factor,carbsG:breakdown.macros.carbsG*factor,fatG:breakdown.macros.fatG*factor},
-     sodiumMg:breakdown.sodiumMg*factor,saltG:breakdown.saltG*factor,
-     items:breakdown.items.map(item=>({...item,grams:item.grams*factor,energy:item.energy*factor,price:item.price==null?undefined:item.price*factor,proteinG:item.proteinG!*factor,carbsG:item.carbsG!*factor,fatG:item.fatG!*factor,sodiumMg:item.sodiumMg!*factor})),
-    }));
-   }
-  }
- }
+ const modelBreakdowns=foodModelBreakdowns(entry);
  const groups=modelBreakdowns??(entry.items?[{model:"",items:entry.items,energy:entry.energy,macros:entry.macros,sodiumMg:entry.sodiumMg,saltG:entry.saltG}]:[]);
  return <details className="foodEstimate"><summary>Ingredients &amp; nutrition{entry.energyRange&&` · ${Math.round(entry.energyRange[0])}–${Math.round(entry.energyRange[1])} kcal`}</summary>
   {entry.macros&&<div className="macroSummary"><span>Protein <b>{Math.round(entry.macros.proteinG)} g</b></span><span>Carbs <b>{Math.round(entry.macros.carbsG)} g</b></span><span>Fat <b>{Math.round(entry.macros.fatG)} g</b></span>{entry.sodiumMg!=null&&<span>Sodium <b>{Math.round(entry.sodiumMg).toLocaleString()} mg</b></span>}{entry.saltG!=null&&<span>Salt <b>{entry.saltG.toFixed(1)} g</b></span>}</div>}

@@ -23,6 +23,29 @@ export function foodEstimateFields(estimate:FoodEstimate){
   sodiumMg:nutrients.sodiumMg,saltG:nutrients.sodiumMg/400,
  };
 }
+// A two-model entry keeps only the first model's items; its totals average
+// both. Returns each model's estimate scaled to the entry's current portion,
+// or undefined once the entry no longer matches that original average.
+export function foodModelBreakdowns(entry:FoodEntry){
+ if(!entry.items||!entry.macros||entry.sodiumMg==null||!entry.analysis?.response||entry.conversation?.some(message=>message.updatedEntry))return undefined;
+ const saved=JSON.parse(entry.analysis.response);
+ if(!Array.isArray(saved)||saved.length!==2)return undefined;
+ const original=saved.map((analysis:{model:string;response:unknown})=>{
+  const {items,energy,macros,sodiumMg,saltG}=foodEstimateFields(foodEstimateSchema.parse(analysis.response));
+  return {model:analysis.model,items,energy,macros,sodiumMg,saltG};
+ });
+ const factor=entry.items.reduce((sum,item)=>sum+item.energy,0)/original[0].energy;
+ if(!(Number.isFinite(factor)&&entry.items.length===original[0].items.length&&entry.items.every((item,index)=>{
+  const first=original[0].items[index];
+  return item.name===first.name&&(["grams","energy","proteinG","carbsG","fatG","sodiumMg"] as const).every(key=>Math.abs(item[key]!-first[key]!*factor)<1e-7);
+ })&&Math.abs(entry.energy-(original[0].energy+original[1].energy)*factor/2)<1e-7&&(["proteinG","carbsG","fatG"] as const).every(key=>Math.abs(entry.macros![key]-(original[0].macros[key]+original[1].macros[key])*factor/2)<1e-7)&&Math.abs(entry.sodiumMg-(original[0].sodiumMg+original[1].sodiumMg)*factor/2)<1e-7))return undefined;
+ return original.map(breakdown=>({
+  model:breakdown.model,energy:breakdown.energy*factor,
+  macros:{proteinG:breakdown.macros.proteinG*factor,carbsG:breakdown.macros.carbsG*factor,fatG:breakdown.macros.fatG*factor},
+  sodiumMg:breakdown.sodiumMg*factor,saltG:breakdown.saltG*factor,
+  items:breakdown.items.map(item=>({...item,grams:item.grams*factor,energy:item.energy*factor,price:item.price==null?undefined:item.price*factor,proteinG:item.proteinG*factor,carbsG:item.carbsG*factor,fatG:item.fatG*factor,sodiumMg:item.sodiumMg*factor})),
+ }));
+}
 export function foodPriceFromText(text:string){
  const patterns=[
   /(?:^|[\s,;])price\s*[:=]\s*([$¥￥]?\s*\d+(?:\.\d{1,2})?)(?:\s|$)/i,

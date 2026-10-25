@@ -1,4 +1,6 @@
 import {foodFollowUpMessages} from "../lib/food-ai.ts";
+import {foodEstimateFields} from "../lib/food.ts";
+import type {FoodMessage} from "../lib/types.ts";
 import {foodAnalysisJsonSchema,foodFollowUpJsonSchema} from "../lib/food-ai-schema.ts";
 import test from "node:test";import assert from "node:assert/strict";import {foodAnalysisPrompt,foodContent,foodSuggestionPrompt,summarizeFoodHistory} from "../lib/ai.ts";
 test("food payload places prompt before all base64 images",()=>{const c=foodContent("rice",[{mime:"image/png",base64:"aaa"},{mime:"image/jpeg",base64:"bbb"}]);assert.equal(c[0].type,"text");assert.match((c[0] as {text:string}).text,/rice/);assert.deepEqual(c.slice(1).map((x:any)=>x.image_url.url),["data:image/png;base64,aaa","data:image/jpeg;base64,bbb"])});
@@ -23,3 +25,17 @@ test("initial analysis and follow-up schemas request ingredient nutrition only",
 
 test("food follow-ups do not ask questions or invite more conversation",()=>{const system=foodFollowUpMessages({id:"f",name:"Toast",amount:"1 slice",energy:90,createdAt:"x"},"Why so high?")[0].content as string;assert.doesNotMatch(system,/ask a clarifying question/);assert.match(system,/never end the reply with a question/)});
 test("food follow-ups reply in a robotic, impersonal style",()=>{const system=foodFollowUpMessages({id:"f",name:"Toast",amount:"1 slice",energy:90,createdAt:"x"},"Why so high?")[0].content as string;assert.doesNotMatch(system,/Reply naturally/);assert.match(system,/Do not act nice or friendly/);assert.match(system,/purely robotic, impersonal chatbot style/)});
+
+test("food follow-ups see every model's estimate behind averaged totals",()=>{
+ const estimate=(kcal:number)=>({name:"Rice",amount:"1 bowl",price:null,items:[{name:"Rice",price:null,grams:100,kcal_per_100g:kcal,kcal,protein_g:2,carbs_g:20,fat_g:1,sodium_mg:10,confidence:"medium" as const}]});
+ const response=JSON.stringify([{model:"google/gemini-3.7-flash",response:estimate(200)},{model:"anthropic/claude-opus-5",response:estimate(300)}]);
+ const entry={id:"f",...foodEstimateFields(estimate(200)),energy:250,createdAt:"x",analysis:{response,createdAt:"x"}};
+ const saved=(food:typeof entry&{conversation?:FoodMessage[]})=>JSON.parse((foodFollowUpMessages(food,"Why so high?").at(-1)!.content as string).split("\n")[1]);
+ const averaged=saved(entry);
+ assert.equal(averaged.items,undefined);
+ assert.deepEqual(averaged.modelEstimates.map((model:{model:string;energy:number})=>[model.model,model.energy]),[["google/gemini-3.7-flash",200],["anthropic/claude-opus-5",300]]);
+ assert.equal(averaged.energy,250);
+ const updated=saved({...entry,conversation:[{id:"m",role:"assistant",content:"Updated.",createdAt:"x",updatedEntry:true}]});
+ assert.equal(updated.modelEstimates,undefined);
+ assert.equal(updated.items.length,1);
+});
