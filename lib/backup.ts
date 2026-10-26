@@ -25,7 +25,7 @@ const food=z.object({
  sourceText:z.string().optional(),
  images:foodImagesSchema.optional(),
  analysis:z.object({response:z.string(),explanation:z.string().optional(),createdAt}).strict().optional(),
- conversation:z.array(z.object({id,role:z.enum(["user","assistant"]),content:z.string(),createdAt,updatedEntry:z.boolean().optional(),response:z.string().optional()}).strict()).optional(),
+ conversation:z.array(z.object({id,role:z.enum(["user","assistant"]),content:z.string(),createdAt,images:foodImagesSchema.optional(),updatedEntry:z.boolean().optional(),response:z.string().optional()}).strict()).optional(),
  userTasteScore:z.number().finite().optional(),
  userTasteNote:z.string().max(500).optional(),
  createdAt,

@@ -1,10 +1,17 @@
 import {NextResponse} from "next/server";
-import type {FoodEntry,State} from "./types";
+import type {FoodEntry,FoodImage,State} from "./types";
+
+const imageUrls=(images:FoodImage[],query:string)=>images.map((image,index)=>({name:image.name,url:`/api/food/image?${query}&index=${index}`}));
 
 // Photo bytes stay in storage/backups. Normal refreshes carry lazy image URLs
 // so a growing photo history doesn't inflate every tracker response.
 export function foodForClient(entry:FoodEntry):FoodEntry{
- return {...entry,...(entry.images?{images:entry.images.map((image,index)=>({name:image.name,url:`/api/food/image?id=${encodeURIComponent(entry.id)}&index=${index}`}))}:{})};
+ const query=`id=${encodeURIComponent(entry.id)}`;
+ return {
+  ...entry,
+  ...(entry.images?{images:imageUrls(entry.images,query)}:{}),
+  ...(entry.conversation?{conversation:entry.conversation.map(message=>message.images?{...message,images:imageUrls(message.images,`${query}&message=${encodeURIComponent(message.id)}`)}:message)}:{}),
+ };
 }
 
 export function stateResponse(state:State){

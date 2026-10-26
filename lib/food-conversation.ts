@@ -1,6 +1,6 @@
 import {z} from "zod";
 import {foodEstimateFields,foodEstimateSchema} from "./food";
-import type {FoodEntry,State} from "./types";
+import type {FoodEntry,FoodImage,State} from "./types";
 
 export const foodFollowUpSchema=z.object({
  reply:z.string().trim().min(1).max(20000),
@@ -26,13 +26,13 @@ export function foodConversationVersion(entry:FoodEntry){
  return JSON.stringify(context);
 }
 
-export function applyFoodFollowUp(state:State,id:string,version:string,submissionId:string,question:string,result:z.infer<typeof foodFollowUpSchema>,response:string){
+export function applyFoodFollowUp(state:State,id:string,version:string,submissionId:string,question:string,result:z.infer<typeof foodFollowUpSchema>,response:string,images:FoodImage[]=[]){
  const {entry}=findFood(state,id);
  if(foodConversationVersion(entry)!==version)throw new FoodConversationError("This meal changed while the reply was being prepared. Please send your question again using the latest entry.",409);
  if(result.update)Object.assign(entry,foodEstimateFields(result.update));
  const createdAt=new Date().toISOString();
  (entry.conversation??=[]).push(
-  {id:`${submissionId}:user`,role:"user",content:question,createdAt},
+  {id:`${submissionId}:user`,role:"user",content:question,createdAt,...(images.length?{images}:{})},
   {id:`${submissionId}:assistant`,role:"assistant",content:result.reply,createdAt,updatedEntry:result.update!==null,response},
  );
  return entry;

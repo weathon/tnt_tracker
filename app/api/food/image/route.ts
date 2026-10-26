@@ -8,8 +8,10 @@ export async function GET(request:Request){
   const params=new URL(request.url).searchParams;
   const id=z.string().min(1).parse(params.get("id"));
   const index=z.string().regex(/^\d+$/).transform(Number).parse(params.get("index"));
+  const messageId=params.get("message");
   const {entry}=findFood(await readState(),id);
-  const image=entry.images?.[index];
+  const images=messageId==null?entry.images:entry.conversation?.find(message=>message.id===messageId)?.images;
+  const image=images?.[index];
   if(!image)throw new FoodConversationError("Photo not found.",404);
   const match=image.url.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/);
   if(!match)throw new Error("Invalid saved photo");

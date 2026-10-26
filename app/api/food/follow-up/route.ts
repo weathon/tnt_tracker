@@ -3,10 +3,19 @@ import {NextResponse} from "next/server";
 import {z} from "zod";
 import {followUpFood} from "@/lib/food-ai";
 import {applyFoodFollowUp,findFood,FoodConversationError,foodConversationVersion} from "@/lib/food-conversation";
+import {readFoodImages} from "@/lib/food-images";
 import {readState,updateState} from "@/lib/store";
 import type {State} from "@/lib/types";
 
-const requestSchema=z.object({id:z.string().min(1),submissionId:z.uuid(),message:z.string().trim().min(1,"Ask a question first.").max(4000,"Keep your question under 4,000 characters.")});
+const requestSchema=z.object({id:z.string().min(1),submissionId:z.uuid(),message:z.string().trim().max(4000,"Keep your question under 4,000 characters.")});
+
+// The page sends a form so follow-ups can carry photos; JSON stays accepted
+// for text-only callers.
+async function readFollowUp(request:Request){
+ if(!request.headers.get("content-type")?.startsWith("multipart/form-data"))return {...requestSchema.parse(await request.json()),files:[] as FormDataEntryValue[]};
+ const form=await request.formData();
+ return {...requestSchema.parse({id:form.get("id"),submissionId:form.get("submissionId"),message:form.get("message")??""}),files:form.getAll("images")};
+}
 
 function savedResponse(state:State,id:string,submissionId:string){
  const {entry}=findFood(state,id);
@@ -17,15 +26,17 @@ function savedResponse(state:State,id:string,submissionId:string){
 
 export async function POST(request:Request){
  try{
-  const {id,submissionId,message}=requestSchema.parse(await request.json());
+  const {id,submissionId,message,files}=await readFollowUp(request);
+  if(!message&&!files.length)throw new Error("Ask a question or add a photo first.");
   const mutationId=`food-follow-up:${id}:${submissionId}`;
   const saved=await readState();
   if(saved.appliedMutationIds?.includes(mutationId))return savedResponse(saved,id,submissionId);
   const {entry}=findFood(saved,id);
+  const images=await readFoodImages(files);
   const version=foodConversationVersion(entry);
-  const {result,raw}=await followUpFood(entry,message);
+  const {result,raw}=await followUpFood(entry,message,images);
   const state=await updateState(current=>{
-   applyFoodFollowUp(current,id,version,submissionId,message,result,raw);
+   applyFoodFollowUp(current,id,version,submissionId,message,result,raw,images);
   },mutationId);
   return savedResponse(state,id,submissionId);
  }catch(error){
