@@ -10,14 +10,15 @@ type Message={role:"system"|"user"|"assistant";content:Content};
 const imageContent=(images:FoodImage[])=>images.map(image=>({type:"image_url" as const,image_url:{url:image.url}}));
 const withImages=(text:string,images:FoodImage[]=[]):Content=>images.length?[{type:"text",text},...imageContent(images)]:text;
 const PHOTO_ONLY="(No text. See the attached photos.)";
+const FOOD_MODEL="openai/gpt-6.1-sol";
 
-async function structuredFoodResponse<T>(model:string,name:string,schema:unknown,messages:Message[],validate:(value:unknown)=>T){
+async function structuredFoodResponse<T>(name:string,schema:unknown,messages:Message[],validate:(value:unknown)=>T){
  const key=process.env.OPENROUTER_API_KEY;
  if(!key)throw new Error("OPENROUTER_API_KEY is not configured");
  const analyze=async()=>{
   const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{
    method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},
-   body:JSON.stringify({model,reasoning:{effort:"xhigh"},messages,response_format:{type:"json_schema",json_schema:{name,strict:true,schema}},provider:{require_parameters:true},plugins:[{id:"response-healing"}],stream:false}),
+   body:JSON.stringify({model:FOOD_MODEL,reasoning:{effort:"medium"},messages,response_format:{type:"json_schema",json_schema:{name,strict:true,schema}},provider:{require_parameters:true},plugins:[{id:"response-healing"}],stream:false}),
   });
   if(!response.ok)throw new Error(`OpenRouter error ${response.status}: ${await response.text()}`);
   const body=await response.json();
@@ -30,29 +31,17 @@ async function structuredFoodResponse<T>(model:string,name:string,schema:unknown
 
 const initialAnalysisSchema=foodEstimateSchema.safeExtend({explanation:z.string().trim().min(1).optional()});
 export async function analyzeFood(text:string,images:FoodImage[]){
- const models=["google/gemini-3.7-flash","anthropic/claude-opus-5"];
- const responses=await Promise.all(models.map(model=>structuredFoodResponse(model,"food_analysis",foodAnalysisJsonSchema,[{role:"user",content:[
+ const response=await structuredFoodResponse("food_analysis",foodAnalysisJsonSchema,[{role:"user",content:[
   {type:"text",text:foodAnalysisPrompt(text,foodAnalysisJsonSchema)},...imageContent(images),
- ]}],value=>initialAnalysisSchema.parse(value))));
- const [gemini,claude]=responses.map(response=>foodEstimateFields(response.result));
- return {
-  result:responses[0].result,
-  energy:(gemini.energy+claude.energy)/2,
-  macros:{
-   proteinG:(gemini.macros.proteinG+claude.macros.proteinG)/2,
-   carbsG:(gemini.macros.carbsG+claude.macros.carbsG)/2,
-   fatG:(gemini.macros.fatG+claude.macros.fatG)/2,
-  },
-  sodiumMg:(gemini.sodiumMg+claude.sodiumMg)/2,
-  saltG:(gemini.saltG+claude.saltG)/2,
-  raw:JSON.stringify(responses.map((response,index)=>({model:models[index],response:JSON.parse(response.raw)}))),
- };
+ ]}],value=>initialAnalysisSchema.parse(value));
+ const {energy,macros,sodiumMg,saltG}=foodEstimateFields(response.result);
+ return {result:response.result,raw:response.raw,energy,macros,sodiumMg,saltG};
 }
 
 export function foodFollowUpMessages(entry:FoodEntry,question:string,newImages:FoodImage[]=[]):Message[]{
  const {images=[],analysis,conversation=[],...currentEntry}=entry;
- // Saved items are only the first model's, so show every model's estimate
- // behind the averaged totals instead.
+ // Older two-model entries saved only the first model's items, so show every
+ // model's estimate behind their averaged totals instead.
  const modelEstimates=foodModelBreakdowns(entry);
  const {items: _items,...averagedEntry}=currentEntry;
  const savedEntry=modelEstimates?{...averagedEntry,modelEstimates}:currentEntry;
@@ -65,5 +54,5 @@ export function foodFollowUpMessages(entry:FoodEntry,question:string,newImages:F
 }
 
 export function followUpFood(entry:FoodEntry,question:string,images:FoodImage[]=[]){
- return structuredFoodResponse("anthropic/claude-opus-5","food_follow_up",foodFollowUpJsonSchema,foodFollowUpMessages(entry,question,images),value=>foodFollowUpSchema.parse(value));
+ return structuredFoodResponse("food_follow_up",foodFollowUpJsonSchema,foodFollowUpMessages(entry,question,images),value=>foodFollowUpSchema.parse(value));
 }

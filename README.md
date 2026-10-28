@@ -87,7 +87,7 @@ Records created by the full version (profile, weight, blood pressure, medication
 
 ## AI configuration
 
-OpenRouter requests use `openai/gpt-5.6-sol`. AI prompts and structured responses use kilocalories. TNT terminology is applied only by the interface.
+OpenRouter requests use `openai/gpt-6.1-sol` with medium reasoning effort. AI prompts and structured responses use kilocalories. TNT terminology is applied only by the interface.
 
 Food analysis returns independent ingredient estimates, including protein, carbohydrates, fat, and sodium for each ingredient. The model does not output meal nutrition totals or total ranges. The app adds the ingredient values without rounding the stored sums and derives salt from sodium; display formatting does not affect saved values.
 
