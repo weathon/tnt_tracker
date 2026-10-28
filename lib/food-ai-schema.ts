@@ -38,7 +38,7 @@ export const foodAnalysisJsonSchema={
 export const foodFollowUpJsonSchema={
  type:"object",additionalProperties:false,
  properties:{
-  reply:{type:"string",description:"A natural-language answer in the user's language that covers only what the user asked, with nothing unrequested. Explain ingredient changes without calculating new combined nutrition totals."},
+  reply:{type:"string",description:"A natural-language answer in the user's language that covers only what the user asked, with nothing unrequested. Explain ingredient changes without calculating new combined nutrition totals. Never mention unchanged ingredients, prices, or values."},
   update:{anyOf:[foodEstimateJsonSchema,{type:"null"}],description:"Complete replacement ingredient estimates ONLY for an actual correction or requested change. Otherwise null."},
  },
  required:["reply","update"],
