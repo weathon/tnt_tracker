@@ -9,11 +9,11 @@ export const foodEstimateJsonSchema={
   price:{type:["number","null"],minimum:0,description:"Actual price paid, only if explicitly provided or visible. Never estimate a price."},
   items:{
    type:"array",minItems:1,
-   description:"Separate ingredients and consumed components, including oils and sauces. No whole-dish row alongside its ingredients.",
+   description:"Separate ingredients and consumed components, including oils and sauces. Each row is exactly one food, ingredient, drink, material, or object; never combine several into one row. No whole-dish row alongside its ingredients.",
    items:{
     type:"object",additionalProperties:false,
     properties:{
-     name:{type:"string",description:"The ingredient or labeled component, in the user's language"},
+     name:{type:"string",description:"One single ingredient or labeled component, in the user's language. Never a list of several items."},
      price:{type:["number","null"],minimum:0,description:"Explicit price for this ingredient/component, or null. Never allocate a dish price among ingredients."},
      grams:quantity,kcal_per_100g:quantity,kcal:quantity,
      protein_g:{...quantity,description:"Protein in this ingredient's consumed portion"},
@@ -38,7 +38,7 @@ export const foodAnalysisJsonSchema={
 export const foodFollowUpJsonSchema={
  type:"object",additionalProperties:false,
  properties:{
-  reply:{type:"string",description:"A natural-language answer in the user's language. Explain ingredient changes without calculating new combined nutrition totals."},
+  reply:{type:"string",description:"A natural-language answer in the user's language that covers only what the user asked, with nothing unrequested. Explain ingredient changes without calculating new combined nutrition totals."},
   update:{anyOf:[foodEstimateJsonSchema,{type:"null"}],description:"Complete replacement ingredient estimates ONLY for an actual correction or requested change. Otherwise null."},
  },
  required:["reply","update"],
