@@ -10,7 +10,7 @@ type Message={role:"system"|"user"|"assistant";content:Content};
 const imageContent=(images:FoodImage[])=>images.map(image=>({type:"image_url" as const,image_url:{url:image.url}}));
 const withImages=(text:string,images:FoodImage[]=[]):Content=>images.length?[{type:"text",text},...imageContent(images)]:text;
 const PHOTO_ONLY="(No text. See the attached photos.)";
-const FOOD_MODEL="openai/gpt-6.1-sol";
+const FOOD_MODEL="anthropic/claude-opus-5";
 
 async function structuredFoodResponse<T>(name:string,schema:unknown,messages:Message[],validate:(value:unknown)=>T){
  const key=process.env.OPENROUTER_API_KEY;
