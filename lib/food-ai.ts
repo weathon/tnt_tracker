@@ -10,7 +10,7 @@ type Message={role:"system"|"user"|"assistant";content:Content};
 const imageContent=(images:FoodImage[])=>images.map(image=>({type:"image_url" as const,image_url:{url:image.url}}));
 const withImages=(text:string,images:FoodImage[]=[]):Content=>images.length?[{type:"text",text},...imageContent(images)]:text;
 const PHOTO_ONLY="(No text. See the attached photos.)";
-const FOOD_MODEL="openai/gpt-6.1-sol";
+const FOOD_MODEL="anthropic/claude-opus-5";
 
 async function structuredFoodResponse<T>(name:string,schema:unknown,messages:Message[],validate:(value:unknown)=>T){
  const key=process.env.OPENROUTER_API_KEY;
@@ -18,7 +18,7 @@ async function structuredFoodResponse<T>(name:string,schema:unknown,messages:Mes
  const analyze=async()=>{
   const response=await fetch("https://openrouter.ai/api/v1/chat/completions",{
    method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},
-   body:JSON.stringify({model:FOOD_MODEL,reasoning:{effort:"medium"},messages,response_format:{type:"json_schema",json_schema:{name,strict:true,schema}},provider:{require_parameters:true},plugins:[{id:"response-healing"}],stream:false}),
+   body:JSON.stringify({model:FOOD_MODEL,reasoning:{effort:"xhigh"},messages,response_format:{type:"json_schema",json_schema:{name,strict:true,schema}},provider:{require_parameters:true},plugins:[{id:"response-healing"}],stream:false}),
   });
   if(!response.ok)throw new Error(`OpenRouter error ${response.status}: ${await response.text()}`);
   const body=await response.json();
